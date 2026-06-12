@@ -16,6 +16,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.kayro.dungeon.DungeonForgeGame;
 import com.kayro.dungeon.util.Constants;
+import com.kayro.dungeon.util.Difficulty;
 
 public class MainMenuScreen extends ScreenAdapter {
     private static final Color PANEL = new Color(0.055f, 0.065f, 0.075f, 0.92f);
@@ -31,6 +32,7 @@ public class MainMenuScreen extends ScreenAdapter {
     private final Vector2 mouse = new Vector2();
     private final Rectangle startButton = new Rectangle(92f, 116f, 248f, 58f);
     private final Rectangle quitButton = new Rectangle(366f, 116f, 150f, 58f);
+    private final Rectangle diffButton = new Rectangle(92f, 192f, 424f, 38f);
     private float timer;
 
     public MainMenuScreen(DungeonForgeGame game) {
@@ -45,7 +47,17 @@ public class MainMenuScreen extends ScreenAdapter {
 
         boolean startHovered = startButton.contains(mouse);
         boolean quitHovered = quitButton.contains(mouse);
+        boolean diffHovered = diffButton.contains(mouse);
         boolean click = Gdx.input.isButtonJustPressed(Input.Buttons.LEFT);
+        if (click && diffHovered) {
+            game.difficulty = game.difficulty.next();
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+            game.difficulty = game.difficulty.next();
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+            game.difficulty = game.difficulty.prev();
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
                 || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
                 || (click && startHovered)) {
@@ -107,12 +119,15 @@ public class MainMenuScreen extends ScreenAdapter {
     }
 
     private void drawPanels(boolean startHovered, boolean quitHovered) {
+        boolean diffHovered = diffButton.contains(mouse);
         game.shapes.begin(ShapeRenderer.ShapeType.Filled);
         rect(64f, 82f, 500f, 548f, PANEL_DARK);
         rect(604f, 126f, 300f, 386f, PANEL);
         rect(932f, 126f, 278f, 386f, PANEL);
         rect(604f, 542f, 606f, 88f, new Color(0.060f, 0.070f, 0.078f, 0.88f));
 
+        rect(diffButton.x, diffButton.y, diffButton.width, diffButton.height,
+                diffHovered ? new Color(0.10f, 0.12f, 0.14f, 0.96f) : new Color(0.06f, 0.07f, 0.08f, 0.94f));
         rect(startButton.x, startButton.y, startButton.width, startButton.height,
                 startHovered ? new Color(0.82f, 0.48f, 0.18f, 1f) : new Color(0.62f, 0.32f, 0.12f, 1f));
         rect(quitButton.x, quitButton.y, quitButton.width, quitButton.height,
@@ -157,6 +172,15 @@ public class MainMenuScreen extends ScreenAdapter {
         game.font.draw(game.batch, "Quit", quitButton.x, quitButton.y + 38f,
                 quitButton.width, Align.center, false);
         game.font.getData().setScale(1.0f);
+        Difficulty diff = game.difficulty;
+        game.font.getData().setScale(1.0f);
+        game.font.setColor(diff.color);
+        game.font.draw(game.batch, "◀  " + diff.label + "  ▶", diffButton.x, diffButton.y + 28f,
+                diffButton.width * 0.5f, Align.center, false);
+        game.font.setColor(0.62f, 0.70f, 0.76f, 1f);
+        game.font.draw(game.batch, diff.description, diffButton.x + diffButton.width * 0.5f, diffButton.y + 28f,
+                diffButton.width * 0.5f, Align.center, false);
+
         game.font.setColor(startHovered || quitHovered ? GOLD : new Color(0.62f, 0.70f, 0.76f, 1f));
         game.font.draw(game.batch, "Enter / Space to start    Esc to quit", 88f, 100f, 430f, Align.left, false);
 

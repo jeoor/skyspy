@@ -19,6 +19,7 @@ import com.kayro.dungeon.render.WorldRenderer;
 import com.kayro.dungeon.system.CameraController;
 import com.kayro.dungeon.util.Constants;
 import com.kayro.dungeon.world.GameWorld;
+import com.kayro.dungeon.entity.ShopItem;
 import com.kayro.dungeon.entity.WeaponType;
 
 public class GameScreen extends ScreenAdapter {
@@ -27,6 +28,9 @@ public class GameScreen extends ScreenAdapter {
     private static final Color PAUSE_LINE = new Color(0.26f, 0.31f, 0.34f, 1f);
     private static final Color PAUSE_GOLD = new Color(0.96f, 0.70f, 0.28f, 1f);
     private static final Color PAUSE_TEAL = new Color(0.32f, 0.76f, 0.78f, 1f);
+    private static final Color SHOP_BG = new Color(0.04f, 0.06f, 0.08f, 0.95f);
+    private static final Color SHOP_PANEL = new Color(0.065f, 0.075f, 0.085f, 0.96f);
+    private static final ShopItem[] SHOP_ITEMS = ShopItem.values();
 
     private final DungeonForgeGame game;
     private final GameWorld world;
@@ -41,6 +45,8 @@ public class GameScreen extends ScreenAdapter {
     private final Vector2 mouseHud = new Vector2();
     private final Rectangle pauseResumeButton = new Rectangle(426f, 202f, 182f, 52f);
     private final Rectangle pauseMenuButton = new Rectangle(672f, 202f, 182f, 52f);
+    private final Rectangle[] shopButtons = new Rectangle[5];
+    private final Rectangle shopCloseButton = new Rectangle(530f, 140f, 220f, 44f);
     private boolean paused;
 
     public GameScreen(DungeonForgeGame game) {
@@ -49,10 +55,13 @@ public class GameScreen extends ScreenAdapter {
 
     public GameScreen(DungeonForgeGame game, WeaponType startingWeapon) {
         this.game = game;
-        world = new GameWorld(game.sfx, startingWeapon);
+        world = new GameWorld(game.sfx, startingWeapon, game.difficulty);
         cameraController = new CameraController(worldCamera, worldViewport);
         cameraController.setBounds(world.map.worldWidth(), world.map.worldHeight());
         cameraController.snapTo(world.player.getCenter());
+        for (int i = 0; i < shopButtons.length; i++) {
+            shopButtons[i] = new Rectangle(420f, 440f - i * 56f, 440f, 48f);
+        }
     }
 
     @Override
@@ -60,7 +69,28 @@ public class GameScreen extends ScreenAdapter {
         boolean resumeHovered = false;
         boolean menuHovered = false;
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        if (world.shopOpen) {
+            mouseHud.set(Gdx.input.getX(), Gdx.input.getY());
+            hudViewport.unproject(mouseHud);
+            if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)
+                    || Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+                world.shopOpen = false;
+            }
+            boolean shopClick = Gdx.input.isButtonJustPressed(Input.Buttons.LEFT);
+            if (shopClick && shopCloseButton.contains(mouseHud)) {
+                world.shopOpen = false;
+            }
+            if (shopClick) {
+                for (int i = 0; i < SHOP_ITEMS.length && i < shopButtons.length; i++) {
+                    if (shopButtons[i].contains(mouseHud)) {
+                        world.tryBuy(SHOP_ITEMS[i]);
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) && !world.shopOpen) {
             paused = !paused;
         }
         if (paused) {
@@ -78,7 +108,7 @@ public class GameScreen extends ScreenAdapter {
             }
         }
 
-        if (!paused) {
+        if (!paused && !world.shopOpen) {
             mouseWorld.set(Gdx.input.getX(), Gdx.input.getY());
             worldViewport.unproject(mouseWorld);
             world.input.mouseWorld.set(mouseWorld);
@@ -107,6 +137,9 @@ public class GameScreen extends ScreenAdapter {
         if (paused) {
             renderPauseOverlay(resumeHovered, menuHovered);
         }
+        if (world.shopOpen) {
+            renderShopOverlay();
+        }
     }
 
     private void renderPauseOverlay(boolean resumeHovered, boolean menuHovered) {
@@ -134,9 +167,13 @@ public class GameScreen extends ScreenAdapter {
         game.font.draw(game.batch, "PAUSED", panelX, panelY + panelH - 42f, panelW, Align.center, false);
 
         game.font.getData().setScale(1.0f);
+        game.font.getData().setScale(1.0f);
+        game.font.setColor(game.difficulty.color);
+        game.font.draw(game.batch, game.difficulty.label, panelX, panelY + panelH - 74f, panelW, Align.center, false);
+
         game.font.setColor(0.70f, 0.78f, 0.82f, 1f);
         game.font.draw(game.batch, "Click a button, or use ESC / Enter.",
-                panelX, panelY + panelH - 74f, panelW, Align.center, false);
+                panelX, panelY + panelH - 94f, panelW, Align.center, false);
 
         float leftX = panelX + 58f;
         float rightX = panelX + 308f;
@@ -165,6 +202,74 @@ public class GameScreen extends ScreenAdapter {
                 pauseResumeButton.width, Align.center, false);
         game.font.draw(game.batch, "Menu", pauseMenuButton.x, pauseMenuButton.y + 34f,
                 pauseMenuButton.width, Align.center, false);
+        game.font.getData().setScale(1.0f);
+        game.batch.end();
+    }
+
+    private void renderShopOverlay() {
+        mouseHud.set(Gdx.input.getX(), Gdx.input.getY());
+        hudViewport.unproject(mouseHud);
+
+        float panelX = 380f;
+        float panelY = 100f;
+        float panelW = 520f;
+        float panelH = 440f;
+
+        game.shapes.begin(ShapeRenderer.ShapeType.Filled);
+        game.shapes.setColor(0f, 0f, 0f, 0.60f);
+        game.shapes.rect(0f, 0f, Constants.HUD_WIDTH, Constants.HUD_HEIGHT);
+        pauseRect(panelX, panelY, panelW, panelH, SHOP_PANEL);
+
+        for (int i = 0; i < SHOP_ITEMS.length && i < shopButtons.length; i++) {
+            Rectangle btn = shopButtons[i];
+            boolean hovered = btn.contains(mouseHud);
+            ShopItem item = SHOP_ITEMS[i];
+            boolean canAfford = world.player.gold >= item.price(world.floor);
+            Color btnColor;
+            if (!canAfford) {
+                btnColor = new Color(0.12f, 0.10f, 0.10f, 0.80f);
+            } else if (hovered) {
+                btnColor = new Color(0.14f, 0.28f, 0.22f, 0.95f);
+            } else {
+                btnColor = new Color(0.06f, 0.10f, 0.10f, 0.90f);
+            }
+            pauseRect(btn.x, btn.y, btn.width, btn.height, btnColor);
+        }
+
+        boolean closeHovered = shopCloseButton.contains(mouseHud);
+        pauseRect(shopCloseButton.x, shopCloseButton.y, shopCloseButton.width, shopCloseButton.height,
+                closeHovered ? new Color(0.34f, 0.38f, 0.42f, 1f) : new Color(0.20f, 0.24f, 0.28f, 1f));
+        game.shapes.end();
+
+        game.batch.begin();
+        game.font.getData().setScale(1.5f);
+        game.font.setColor(PAUSE_TEAL);
+        game.font.draw(game.batch, "SHOP", panelX, panelY + panelH - 30f, panelW, Align.center, false);
+
+        game.font.getData().setScale(1.0f);
+        game.font.setColor(PAUSE_GOLD);
+        game.font.draw(game.batch, "Gold: " + world.player.gold, panelX, panelY + panelH - 58f, panelW, Align.center, false);
+
+        for (int i = 0; i < SHOP_ITEMS.length && i < shopButtons.length; i++) {
+            Rectangle btn = shopButtons[i];
+            ShopItem item = SHOP_ITEMS[i];
+            int price = item.price(world.floor);
+            boolean canAfford = world.player.gold >= price;
+
+            game.font.setColor(canAfford ? Color.WHITE : new Color(0.45f, 0.40f, 0.40f, 1f));
+            game.font.draw(game.batch, item.label, btn.x + 14f, btn.y + 32f);
+
+            game.font.setColor(canAfford ? new Color(0.62f, 0.70f, 0.76f, 1f) : new Color(0.38f, 0.36f, 0.36f, 1f));
+            game.font.draw(game.batch, item.description, btn.x + 160f, btn.y + 32f);
+
+            game.font.setColor(canAfford ? PAUSE_GOLD : new Color(0.55f, 0.30f, 0.25f, 1f));
+            game.font.draw(game.batch, price + "g", btn.x + btn.width - 60f, btn.y + 32f);
+        }
+
+        game.font.getData().setScale(1.1f);
+        game.font.setColor(Color.WHITE);
+        game.font.draw(game.batch, "Close [ESC]", shopCloseButton.x, shopCloseButton.y + 30f,
+                shopCloseButton.width, Align.center, false);
         game.font.getData().setScale(1.0f);
         game.batch.end();
     }

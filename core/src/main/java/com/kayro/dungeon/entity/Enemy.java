@@ -2,6 +2,7 @@ package com.kayro.dungeon.entity;
 
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.kayro.dungeon.util.Difficulty;
 import com.kayro.dungeon.world.GameWorld;
 import com.kayro.dungeon.world.BiomeType;
 
@@ -23,10 +24,14 @@ public class Enemy extends LivingEntity {
     public final Vector2 pathTarget = new Vector2();
 
     public Enemy(EnemyType type, float centerX, float centerY, int floor) {
-        this(type, centerX, centerY, floor, BiomeType.CATACOMBS);
+        this(type, centerX, centerY, floor, BiomeType.CATACOMBS, Difficulty.NORMAL);
     }
 
     public Enemy(EnemyType type, float centerX, float centerY, int floor, BiomeType biome) {
+        this(type, centerX, centerY, floor, biome, Difficulty.NORMAL);
+    }
+
+    public Enemy(EnemyType type, float centerX, float centerY, int floor, BiomeType biome, Difficulty difficulty) {
         super(centerX - 14f, centerY - 14f, 28f, 28f);
         this.type = type;
         if (type == EnemyType.BOSS) {
@@ -34,13 +39,15 @@ public class Enemy extends LivingEntity {
             size.set(36f, 36f);
         }
         BiomeType activeBiome = biome == null ? BiomeType.CATACOMBS : biome;
-        float hpMultiplier = 1f + floor * 0.12f;
-        float damageMultiplier = 1f + floor * 0.08f;
+        Difficulty diff = difficulty == null ? Difficulty.NORMAL : difficulty;
+        float hpMultiplier = 1f + floor * diff.enemyHpGrowth;
+        float damageMultiplier = 1f + floor * diff.enemyDamageGrowth;
+        float speedMultiplier = 1f + floor * 0.02f;
         maxHp = MathUtils.round(type.maxHp * hpMultiplier * activeBiome.enemyHpMultiplier);
         hp = maxHp;
         attack = MathUtils.round(type.attack * damageMultiplier * activeBiome.enemyDamageMultiplier);
         defense = type.defense;
-        speed = type.speed * activeBiome.enemySpeedMultiplier;
+        speed = type.speed * activeBiome.enemySpeedMultiplier * speedMultiplier;
         attackCooldown = type.attackCooldown;
         attackTimer = MathUtils.random(0f, attackCooldown);
         expReward = type.expReward;

@@ -18,7 +18,8 @@ import com.kayro.dungeon.entity.ItemType;
 import com.kayro.dungeon.entity.Player;
 import com.kayro.dungeon.entity.PropType;
 import com.kayro.dungeon.entity.Projectile;
-import com.kayro.dungeon.entity.RelicType;
+import com.kayro.dungeon.entity.Shop;
+import com.kayro.dungeon.entity.ShopItem;
 import com.kayro.dungeon.entity.Trap;
 import com.kayro.dungeon.entity.WeaponType;
 import com.kayro.dungeon.system.AISystem;
@@ -30,6 +31,7 @@ import com.kayro.dungeon.system.LevelSystem;
 import com.kayro.dungeon.system.LootSystem;
 import com.kayro.dungeon.system.SpawnerSystem;
 import com.kayro.dungeon.util.Constants;
+import com.kayro.dungeon.util.Difficulty;
 
 public class GameWorld {
     public int floor = 1;
@@ -43,6 +45,8 @@ public class GameWorld {
     public final Array<Chest> chests = new Array<>();
     public final Array<Item> items = new Array<>();
     public final Array<Trap> traps = new Array<>();
+    public Shop shop;
+    public boolean shopOpen;
     public final Array<Projectile> projectiles = new Array<>();
     public final Array<DamageText> damageTexts = new Array<>();
     public final Array<AttackEffect> attackEffects = new Array<>();
@@ -57,6 +61,7 @@ public class GameWorld {
     private final FogOfWarSystem fog = new FogOfWarSystem();
     private final AISystem aiSystem = new AISystem();
     private final SpawnerSystem spawnerSystem = new SpawnerSystem();
+    public final Difficulty difficulty;
     private final WeaponType startingWeapon;
     private float hitStopTimer;
     private float shakeTimer;
@@ -72,8 +77,13 @@ public class GameWorld {
     }
 
     public GameWorld(Sfx sfx, WeaponType startingWeapon) {
+        this(sfx, startingWeapon, Difficulty.NORMAL);
+    }
+
+    public GameWorld(Sfx sfx, WeaponType startingWeapon, Difficulty difficulty) {
         this.sfx = sfx;
         this.startingWeapon = startingWeapon == null ? WeaponType.SWORD : startingWeapon;
+        this.difficulty = difficulty == null ? Difficulty.NORMAL : difficulty;
         newRun();
     }
 
@@ -86,32 +96,9 @@ public class GameWorld {
 
     public void nextFloor() {
         floor++;
-        int hp = player.hp;
-        int maxHp = player.maxHp;
-        int attack = player.attack;
-        int defense = player.defense;
-        int level = player.level;
-        int exp = player.exp;
-        int gold = player.gold;
-        int keys = player.keys;
-        int potions = player.potions;
-        WeaponType weapon = player.weapon;
-        Array<RelicType> relics = new Array<>();
-        relics.addAll(player.relics);
+        Player.State saved = player.saveState();
         loadFloor();
-        player.hp = hp;
-        player.maxHp = maxHp;
-        player.attack = attack;
-        player.defense = defense;
-        player.level = level;
-        player.exp = exp;
-        player.gold = gold;
-        player.keys = keys;
-        player.potions = potions;
-        player.equipWeapon(weapon);
-        for (RelicType relic : relics) {
-            player.addRelic(relic);
-        }
+        player.restoreState(saved);
     }
 
     public void update(float delta) {
@@ -131,23 +118,24 @@ public class GameWorld {
             return;
         }
 
-        if (input.interactPressed && player.getCenter().dst(map.stairsPosition) < 40f) {
+        boolean usedStairs = false;
+        if (input.interactPressed && player.getCenter().dst(map.stairsPosition) < 52f) {
             if (hasLiveBoss()) {
                 addDamageText("Defeat Boss", player.getCenter().x - 16f, player.getCenter().y + 28f, Color.SCARLET);
                 shake(3f, 0.10f);
-                return;
-            }
-            if (player.keys <= 0) {
+            } else if (player.keys <= 0) {
                 addDamageText("Find Key", player.getCenter().x - 10f, player.getCenter().y + 28f, Color.GOLD);
                 shake(2f, 0.08f);
-                return;
+            } else {
+                player.keys--;
+                if (sfx != null) {
+                    sfx.stairs();
+                }
+                nextFloor();
+                usedStairs = true;
             }
-            player.keys--;
-            if (sfx != null) {
-                sfx.stairs();
-            }
-            nextFloor();
-        } else {
+        }
+        if (!usedStairs) {
             player.update(delta, this);
             updateTraps(delta);
             updateChests(delta);
@@ -162,6 +150,7 @@ public class GameWorld {
             if (!player.isDead()) {
                 spawnerSystem.update(this, delta);
                 openChests();
+                openShop();
                 pickupItems();
             }
             updateDamageTexts(delta);
@@ -199,10 +188,20 @@ public class GameWorld {
         }
     }
 
+    public void addEnemy(Enemy enemy) {
+        enemy.maxHp = Math.round(enemy.maxHp * difficulty.enemyHpMultiplier);
+        enemy.hp = enemy.maxHp;
+        enemy.attack = Math.round(enemy.attack * difficulty.enemyDamageMultiplier);
+        enemies.add(enemy);
+    }
+
     private void loadFloor() {
         biome = BiomeType.forFloor(floor);
         map = generator.generate();
         player = new Player(map.playerSpawn.x, map.playerSpawn.y);
+        player.maxHp = Math.round(player.maxHp * difficulty.playerHpMultiplier);
+        player.hp = player.maxHp;
+        player.potions = difficulty.startingPotions;
         player.equipWeapon(startingWeapon);
         collision = new CollisionSystem(map);
         enemies.clear();
@@ -223,6 +222,7 @@ public class GameWorld {
         seedItems();
         seedChests();
         seedTraps();
+        seedShop();
         seedBossRoom();
     }
 
@@ -291,6 +291,26 @@ public class GameWorld {
         return PropType.RUBBLE;
     }
 
+    private void seedShop() {
+        shopOpen = false;
+        Vector2 position = randomFloorPosition(Constants.TILE_SIZE * 6f, 80);
+        shop = position != null ? new Shop(position.x, position.y) : null;
+    }
+
+    public boolean tryBuy(ShopItem item) {
+        int cost = item.price(floor);
+        if (player.gold < cost) {
+            return false;
+        }
+        player.gold -= cost;
+        item.apply(player);
+        addDamageText(item.label, player.getCenter().x - 12f, player.getCenter().y + 24f, Color.GREEN);
+        if (sfx != null) {
+            sfx.chest();
+        }
+        return true;
+    }
+
     private void seedTraps() {
         int count = MathUtils.random(5, 7 + Math.min(5, floor)) + biome.extraTraps;
         for (int i = 0; i < count; i++) {
@@ -306,7 +326,7 @@ public class GameWorld {
             return;
         }
         Vector2 bossPosition = roomPosition(map.bossRoom, 1, 1);
-        enemies.add(new Enemy(EnemyType.BOSS, bossPosition.x, bossPosition.y, floor, biome));
+        addEnemy(new Enemy(EnemyType.BOSS, bossPosition.x, bossPosition.y, floor, biome, difficulty));
         Vector2 chestPosition = roomPosition(map.bossRoom, -1, -1);
         chests.add(new Chest(chestPosition.x, chestPosition.y, true));
         addDamageText("Boss Floor", player.getCenter().x - 18f, player.getCenter().y + 30f, Color.SCARLET);
@@ -380,7 +400,7 @@ public class GameWorld {
             if (!trap.isReady() || player.invincibleTimer > 0f || !trap.getBounds().overlaps(player.getBounds())) {
                 continue;
             }
-            int damage = Math.max(4, 10 + floor * 2 + biome.trapDamageBonus - player.defense);
+            int damage = Math.max(4, Math.round((10 + floor * 2 + biome.trapDamageBonus) * difficulty.trapDamageMultiplier) - player.defense);
             trap.trigger();
             player.takeDamage(damage);
             player.invincibleTimer = Math.max(player.invincibleTimer, 0.25f);
@@ -405,12 +425,21 @@ public class GameWorld {
         }
     }
 
+    private void openShop() {
+        if (!input.interactPressed || shop == null) {
+            return;
+        }
+        if (player.getCenter().dst(shop.getCenter()) <= Shop.INTERACT_RANGE) {
+            shopOpen = true;
+        }
+    }
+
     private void openChests() {
         if (!input.interactPressed) {
             return;
         }
         for (Chest chest : chests) {
-            if (chest.opened || chest.getCenter().dst(player.getCenter()) > 48f) {
+            if (chest.opened || chest.getCenter().dst(player.getCenter()) > 56f) {
                 continue;
             }
             if (chest.bossChest && hasLiveBoss()) {
@@ -433,7 +462,7 @@ public class GameWorld {
         int gold = chest.bossChest ? MathUtils.random(8, 14 + floor * 2) : MathUtils.random(4, 8 + floor);
         items.add(new Item(ItemType.COIN, x - 12f, y, gold));
         items.add(new Item(ItemType.POTION, x + 12f, y, 1));
-        if (chest.bossChest || player.keys == 0 || MathUtils.randomBoolean(0.25f)) {
+        if (chest.bossChest || (player.keys == 0 && MathUtils.randomBoolean(0.55f)) || MathUtils.randomBoolean(0.08f)) {
             items.add(new Item(ItemType.KEY, x, y - 16f, 1));
         }
         if (chest.bossChest || MathUtils.randomBoolean(0.35f)) {
@@ -512,18 +541,19 @@ public class GameWorld {
         return true;
     }
 
+    private final Rectangle moveCheckBounds = new Rectangle();
+
     private boolean canMovePastChests(Entity entity, float dx, float dy) {
         if (!collision.canMove(entity, dx, dy)) {
             return false;
         }
-        Rectangle next = entity.getBounds();
-        next.x += dx;
-        next.y += dy;
+        Rectangle bounds = entity.getBounds();
+        moveCheckBounds.set(bounds.x + dx, bounds.y + dy, bounds.width, bounds.height);
         for (Chest chest : chests) {
             if (!chest.blocksMovement()) {
                 continue;
             }
-            if (next.overlaps(chest.getBounds())) {
+            if (moveCheckBounds.overlaps(chest.getBounds())) {
                 return false;
             }
         }

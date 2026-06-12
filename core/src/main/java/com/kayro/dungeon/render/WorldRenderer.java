@@ -16,6 +16,8 @@ import com.kayro.dungeon.entity.Enemy;
 import com.kayro.dungeon.entity.EnemyActionState;
 import com.kayro.dungeon.entity.EnemyType;
 import com.kayro.dungeon.entity.Item;
+import com.kayro.dungeon.entity.ItemType;
+import com.kayro.dungeon.entity.Shop;
 import com.kayro.dungeon.entity.Projectile;
 import com.kayro.dungeon.entity.Trap;
 import com.kayro.dungeon.util.Constants;
@@ -62,6 +64,7 @@ public class WorldRenderer {
         shapes.end();
 
         drawDamageTexts(world, batch, font, camera);
+        drawPrompts(world, batch, font, camera);
     }
 
     private void drawSpriteLayer(GameWorld world, SpriteBatch batch, GameAssets assets,
@@ -96,6 +99,10 @@ public class WorldRenderer {
                 Color tint = chest.bossChest ? BOSS_CHEST_TINT : Color.WHITE;
                 drawObjectSprite(batch, region, chest.getCenter().x, chest.getCenter().y, 34f, 34f, tint);
             }
+        }
+
+        if (world.shop != null) {
+            drawShopSprite(batch, assets, world.shop);
         }
 
         for (Item item : world.items) {
@@ -291,5 +298,120 @@ public class WorldRenderer {
         }
         font.getData().setScale(1.0f);
         batch.end();
+    }
+
+    private void drawPrompts(GameWorld world, SpriteBatch batch, BitmapFont font, OrthographicCamera camera) {
+        batch.setProjectionMatrix(camera.combined);
+        batch.begin();
+        font.getData().setScale(0.65f);
+
+        float px = world.player.getCenter().x;
+        float py = world.player.getCenter().y;
+
+        for (DecorProp prop : world.props) {
+            float dx = prop.getCenter().x;
+            float dy = prop.getCenter().y;
+            if (Math.abs(dx - px) > 80f || Math.abs(dy - py) > 80f) {
+                continue;
+            }
+            String propLabel = propLabel(prop);
+            if (propLabel != null) {
+                font.setColor(0.58f, 0.62f, 0.66f, 0.80f);
+                font.draw(batch, propLabel, dx - 18f, dy + prop.size.y * 0.5f + 12f);
+            }
+        }
+
+        for (Item item : world.items) {
+            float ix = item.getCenter().x;
+            float iy = item.getCenter().y;
+            if (Math.abs(ix - px) > 100f || Math.abs(iy - py) > 100f) {
+                continue;
+            }
+            String label = itemLabel(item);
+            if (label != null) {
+                font.setColor(0.92f, 0.88f, 0.72f, 0.90f);
+                font.draw(batch, label, ix - 20f, iy + item.size.y * 0.5f + 12f);
+            }
+        }
+
+        for (Chest chest : world.chests) {
+            if (chest.opened) {
+                continue;
+            }
+            float cx = chest.getCenter().x;
+            float cy = chest.getCenter().y;
+            float dist = world.player.getCenter().dst(cx, cy);
+            if (dist > 70f) {
+                continue;
+            }
+            if (chest.bossChest && world.hasLiveBoss()) {
+                font.setColor(0.95f, 0.30f, 0.22f, 0.92f);
+                font.draw(batch, "Defeat Boss", cx - 24f, cy + chest.size.y * 0.5f + 14f);
+            } else {
+                font.setColor(0.72f, 0.92f, 0.78f, 0.92f);
+                font.draw(batch, "Press E", cx - 16f, cy + chest.size.y * 0.5f + 14f);
+            }
+        }
+
+        if (world.shop != null) {
+            float shopDist = world.player.getCenter().dst(world.shop.getCenter());
+            if (shopDist < 70f) {
+                font.setColor(0.28f, 0.82f, 0.92f, 0.92f);
+                font.draw(batch, "Shop [E]", world.shop.getCenter().x - 18f,
+                        world.shop.getCenter().y + world.shop.size.y * 0.5f + 14f);
+            }
+        }
+
+        float stairsDist = world.player.getCenter().dst(world.map.stairsPosition);
+        if (stairsDist < 70f) {
+            float sx = world.map.stairsPosition.x;
+            float sy = world.map.stairsPosition.y;
+            if (world.hasLiveBoss()) {
+                font.setColor(0.95f, 0.30f, 0.22f, 0.92f);
+                font.draw(batch, "Defeat Boss", sx - 24f, sy + 22f);
+            } else if (world.player.keys <= 0) {
+                font.setColor(0.96f, 0.70f, 0.28f, 0.92f);
+                font.draw(batch, "Need Key", sx - 18f, sy + 22f);
+            } else {
+                font.setColor(0.72f, 0.92f, 0.78f, 0.92f);
+                font.draw(batch, "Press E", sx - 16f, sy + 22f);
+            }
+        }
+
+        font.getData().setScale(1.0f);
+        font.setColor(Color.WHITE);
+        batch.end();
+    }
+
+    private void drawShopSprite(SpriteBatch batch, GameAssets assets, Shop shop) {
+        if (assets.crate == null) {
+            return;
+        }
+        batch.setColor(0.28f, 0.82f, 0.92f, 1f);
+        batch.draw(assets.crate, shop.getCenter().x - 17f, shop.getCenter().y - 17f, 34f, 34f);
+        batch.setColor(Color.WHITE);
+    }
+
+    private String propLabel(DecorProp prop) {
+        switch (prop.type) {
+            case BARREL: return "Barrel";
+            case CRATE: return "Crate";
+            case TORCH: return "Torch";
+            case RUBBLE: return "Rubble";
+            default: return null;
+        }
+    }
+
+    private String itemLabel(Item item) {
+        switch (item.type) {
+            case COIN: return "Gold";
+            case POTION: return "Potion";
+            case SWORD_UPGRADE: return "+ATK";
+            case ARMOR_UPGRADE: return "+DEF";
+            case KEY: return "Key";
+            case RELIC: return item.relicType != null ? item.relicType.label : "Relic";
+            case WEAPON: return item.weaponType != null ? item.weaponType.label : "Weapon";
+            default: return null;
+        }
     }
 }

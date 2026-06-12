@@ -46,7 +46,6 @@ public final class ProceduralTextures {
 
     public static Pixmap uiSheet() {
         Pixmap pixmap = new Pixmap(11 * TILE, 7 * TILE, Pixmap.Format.RGBA8888);
-        drawEmptyHeartGauge(pixmap, 5, 0);
         drawHeartIcon(pixmap, 5, 1);
         drawDiamondIcon(pixmap, 5, 2);
         drawShieldIcon(pixmap, 6, 2);
@@ -191,22 +190,6 @@ public final class ProceduralTextures {
         pixmap.setColor(0.42f, 0.04f, 0.06f, 1f);
         pixmap.drawLine(x + 2, y + 7, x + 8, y + 14);
         pixmap.drawLine(x + 13, y + 7, x + 8, y + 14);
-    }
-
-    private static void drawEmptyHeartGauge(Pixmap pixmap, int col, int row) {
-        for (int i = 0; i < 5; i++) {
-            int x = (col + i) * TILE;
-            int y = row * TILE;
-            pixmap.setColor(0.56f, 0.56f, 0.52f, 1f);
-            pixmap.fillCircle(x + 5, y + 6, 3);
-            pixmap.fillCircle(x + 10, y + 6, 3);
-            pixmap.fillTriangle(x + 2, y + 7, x + 13, y + 7, x + 8, y + 14);
-            pixmap.setColor(0.12f, 0.12f, 0.12f, 1f);
-            pixmap.drawLine(x + 2, y + 7, x + 8, y + 14);
-            pixmap.drawLine(x + 13, y + 7, x + 8, y + 14);
-            pixmap.setColor(0.72f, 0.72f, 0.66f, 1f);
-            pixmap.drawLine(x + 4, y + 4, x + 11, y + 4);
-        }
     }
 
     private static void drawDiamondIcon(Pixmap pixmap, int col, int row) {

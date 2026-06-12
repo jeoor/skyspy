@@ -7,6 +7,8 @@ import com.badlogic.gdx.utils.Array;
 import com.kayro.dungeon.util.Constants;
 
 public class DungeonMap {
+    private static final Tile OUT_OF_BOUNDS = new Tile(TileType.WALL);
+
     private final Tile[][] tiles = new Tile[Constants.MAP_WIDTH][Constants.MAP_HEIGHT];
     public final Array<Room> rooms = new Array<>();
     public Vector2 playerSpawn = new Vector2();
@@ -23,7 +25,7 @@ public class DungeonMap {
 
     public Tile getTile(int x, int y) {
         if (!isInBounds(x, y)) {
-            return new Tile(TileType.WALL);
+            return OUT_OF_BOUNDS;
         }
         return tiles[x][y];
     }

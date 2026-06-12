@@ -5,7 +5,6 @@ import com.kayro.dungeon.entity.Chest;
 import com.kayro.dungeon.util.Constants;
 import com.kayro.dungeon.world.GameWorld;
 
-import java.util.Arrays;
 import java.util.PriorityQueue;
 
 public class PathfindingSystem {
@@ -17,8 +16,10 @@ public class PathfindingSystem {
 
     private final float[] gScore = new float[SIZE];
     private final int[] cameFrom = new int[SIZE];
-    private final boolean[] closed = new boolean[SIZE];
+    private final int[] openedGen = new int[SIZE];
+    private final int[] closedGen = new int[SIZE];
     private final PriorityQueue<Node> open = new PriorityQueue<>();
+    private int generation;
 
     public boolean findNextStep(GameWorld world, Vector2 from, Vector2 to, Vector2 out) {
         int startX = world.map.worldToTile(from.x);
@@ -34,25 +35,23 @@ public class PathfindingSystem {
             return false;
         }
 
-        Arrays.fill(gScore, Float.POSITIVE_INFINITY);
-        Arrays.fill(cameFrom, -1);
-        Arrays.fill(closed, false);
+        generation++;
         open.clear();
 
-        gScore[start] = 0f;
+        openNode(start, 0f, -1);
         open.add(new Node(start, heuristic(startX, startY, goalX, goalY)));
 
         boolean found = false;
         while (!open.isEmpty()) {
             Node current = open.poll();
-            if (closed[current.index]) {
+            if (isClosedNode(current.index)) {
                 continue;
             }
             if (current.index == goal) {
                 found = true;
                 break;
             }
-            closed[current.index] = true;
+            closedGen[current.index] = generation;
             int x = current.index % WIDTH;
             int y = current.index / WIDTH;
             for (int i = 0; i < DIR_X.length; i++) {
@@ -62,15 +61,14 @@ public class PathfindingSystem {
                     continue;
                 }
                 int next = index(nextX, nextY);
-                if (closed[next]) {
+                if (isClosedNode(next)) {
                     continue;
                 }
-                float tentative = gScore[current.index] + 1f;
-                if (tentative >= gScore[next]) {
+                float tentative = getGScore(current.index) + 1f;
+                if (tentative >= getGScore(next)) {
                     continue;
                 }
-                cameFrom[next] = current.index;
-                gScore[next] = tentative;
+                openNode(next, tentative, current.index);
                 open.add(new Node(next, tentative + heuristic(nextX, nextY, goalX, goalY)));
             }
         }
@@ -79,18 +77,36 @@ public class PathfindingSystem {
         }
 
         int step = goal;
-        int previous = cameFrom[step];
+        int previous = getCameFrom(step);
         if (previous == -1) {
             return false;
         }
         while (previous != start && previous != -1) {
             step = previous;
-            previous = cameFrom[step];
+            previous = getCameFrom(step);
         }
         int stepX = step % WIDTH;
         int stepY = step / WIDTH;
         out.set((stepX + 0.5f) * Constants.TILE_SIZE, (stepY + 0.5f) * Constants.TILE_SIZE);
         return true;
+    }
+
+    private void openNode(int idx, float g, int from) {
+        openedGen[idx] = generation;
+        gScore[idx] = g;
+        cameFrom[idx] = from;
+    }
+
+    private float getGScore(int idx) {
+        return openedGen[idx] == generation ? gScore[idx] : Float.POSITIVE_INFINITY;
+    }
+
+    private int getCameFrom(int idx) {
+        return openedGen[idx] == generation ? cameFrom[idx] : -1;
+    }
+
+    private boolean isClosedNode(int idx) {
+        return closedGen[idx] == generation;
     }
 
     public boolean hasWalkableLine(GameWorld world, Vector2 from, Vector2 to) {

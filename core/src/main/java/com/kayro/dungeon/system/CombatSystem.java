@@ -21,6 +21,9 @@ public class CombatSystem {
     private static final float PROJECTILE_KNOCKBACK = 18f;
 
     private final Vector2 skillDirection = new Vector2();
+    private final Vector2 tmpFacing = new Vector2();
+    private final Vector2 tmpDirection = new Vector2();
+    private final Vector2 tmpKnockback = new Vector2();
 
     public void update(GameWorld world, float delta) {
         if (world.input.usePotionPressed) {
@@ -60,34 +63,38 @@ public class CombatSystem {
             world.sfx.attack();
         }
         Vector2 playerCenter = player.getCenter();
-        Vector2 facing = new Vector2(player.facing.vector);
+        float pcx = playerCenter.x;
+        float pcy = playerCenter.y;
+        tmpFacing.set(player.facing.vector);
         if (world.input.mouseAttackPressed) {
-            facing.set(world.input.mouseWorld).sub(playerCenter);
-            if (facing.isZero(0.01f)) {
-                facing.set(player.facing.vector);
+            tmpFacing.set(world.input.mouseWorld).sub(pcx, pcy);
+            if (tmpFacing.isZero(0.01f)) {
+                tmpFacing.set(player.facing.vector);
             } else {
-                facing.nor();
+                tmpFacing.nor();
             }
         }
-        world.addAttackEffect(playerCenter, facing);
+        world.addAttackEffect(playerCenter, tmpFacing);
         for (int i = world.enemies.size - 1; i >= 0; i--) {
             Enemy enemy = world.enemies.get(i);
             if (enemy.isDead()) {
                 continue;
             }
             Vector2 enemyCenter = enemy.getCenter();
-            float distance = enemyCenter.dst(playerCenter);
+            float ecx = enemyCenter.x;
+            float ecy = enemyCenter.y;
+            float distance = Vector2.dst(pcx, pcy, ecx, ecy);
             if (distance > player.meleeRange()) {
                 continue;
             }
 
-            Vector2 toEnemy = enemyCenter.sub(playerCenter);
-            if (toEnemy.isZero(0.01f)) {
-                toEnemy.set(facing);
+            tmpDirection.set(ecx - pcx, ecy - pcy);
+            if (tmpDirection.isZero(0.01f)) {
+                tmpDirection.set(tmpFacing);
             } else {
-                toEnemy.nor();
+                tmpDirection.nor();
             }
-            if (toEnemy.dot(facing) < 0.15f && distance > 30f) {
+            if (tmpDirection.dot(tmpFacing) < 0.15f && distance > 30f) {
                 continue;
             }
 
@@ -97,7 +104,7 @@ public class CombatSystem {
             healFromDamage(world, Math.min(beforeHp, damage));
             float knockback = (enemy.isDead() ? MELEE_KILL_KNOCKBACK : MELEE_KNOCKBACK)
                     + player.knockbackBonus + player.weaponKnockbackBonus();
-            applyKnockback(world, enemy, toEnemy, knockback);
+            applyKnockback(world, enemy, tmpDirection, knockback);
             world.hitStop(enemy.isDead() ? MELEE_KILL_HIT_STOP : MELEE_HIT_STOP);
             if (world.sfx != null) {
                 world.sfx.hit();
@@ -114,11 +121,18 @@ public class CombatSystem {
     private void playerArrowSkill(GameWorld world) {
         Player player = world.player;
         Vector2 playerCenter = player.getCenter();
-        skillDirection.set(world.input.mouseWorld).sub(playerCenter);
-        if (skillDirection.isZero(0.01f)) {
-            skillDirection.set(player.facing.vector);
+        Enemy nearest = findNearestEnemy(world, playerCenter);
+        if (nearest != null) {
+            skillDirection.set(nearest.getCenter()).sub(playerCenter).nor();
+        } else if (world.input.mouseSkillPressed) {
+            skillDirection.set(world.input.mouseWorld).sub(playerCenter);
+            if (skillDirection.isZero(0.01f)) {
+                skillDirection.set(player.facing.vector);
+            } else {
+                skillDirection.nor();
+            }
         } else {
-            skillDirection.nor();
+            skillDirection.set(player.facing.vector);
         }
         player.updateFacing(skillDirection);
         player.skillCooldownTimer = player.skillCooldown;
@@ -191,10 +205,10 @@ public class CombatSystem {
             enemy.takeDamage(damage);
             projectile.hitEnemies.add(enemy);
             healFromDamage(world, Math.min(beforeHp, damage));
-            Vector2 knockbackDirection = new Vector2(projectile.velocity);
-            if (!knockbackDirection.isZero(0.01f)) {
-                knockbackDirection.nor();
-                applyKnockback(world, enemy, knockbackDirection,
+            tmpKnockback.set(projectile.velocity);
+            if (!tmpKnockback.isZero(0.01f)) {
+                tmpKnockback.nor();
+                applyKnockback(world, enemy, tmpKnockback,
                         PROJECTILE_KNOCKBACK + world.player.knockbackBonus * 0.5f);
             }
             world.hitStop(PROJECTILE_HIT_STOP);
@@ -283,7 +297,8 @@ public class CombatSystem {
         }
         enemy.attackTimer = enemy.attackCooldown;
         consumePreparedMelee(enemy);
-        enemy.updateFacing(new Vector2(player.getCenter()).sub(enemy.getCenter()));
+        tmpDirection.set(player.getCenter()).sub(enemy.getCenter());
+        enemy.updateFacing(tmpDirection);
         enemy.setAnimationState(AnimationState.ATTACK);
         if (player.invincibleTimer > 0f) {
             return;
@@ -320,5 +335,21 @@ public class CombatSystem {
             enemy.meleeStrikeReady = false;
             enemy.attackTimer = enemy.attackCooldown;
         }
+    }
+
+    private Enemy findNearestEnemy(GameWorld world, Vector2 from) {
+        Enemy nearest = null;
+        float bestDist = Float.MAX_VALUE;
+        for (Enemy enemy : world.enemies) {
+            if (enemy.isDead()) {
+                continue;
+            }
+            float dist = from.dst2(enemy.getCenter());
+            if (dist < bestDist) {
+                bestDist = dist;
+                nearest = enemy;
+            }
+        }
+        return nearest;
     }
 }

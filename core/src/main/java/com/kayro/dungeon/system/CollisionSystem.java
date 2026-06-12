@@ -6,6 +6,7 @@ import com.kayro.dungeon.world.DungeonMap;
 
 public class CollisionSystem {
     private final DungeonMap map;
+    private final Rectangle tmpBounds = new Rectangle();
 
     public CollisionSystem(DungeonMap map) {
         this.map = map;
@@ -25,9 +26,8 @@ public class CollisionSystem {
     }
 
     public boolean canMove(Entity entity, float dx, float dy) {
-        Rectangle next = entity.getBounds();
-        next.x += dx;
-        next.y += dy;
-        return map.isAreaWalkable(next);
+        Rectangle bounds = entity.getBounds();
+        tmpBounds.set(bounds.x + dx, bounds.y + dy, bounds.width, bounds.height);
+        return map.isAreaWalkable(tmpBounds);
     }
 }

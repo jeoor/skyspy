@@ -1,6 +1,5 @@
 package com.kayro.dungeon.world;
 
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 public class Room {
@@ -29,8 +28,8 @@ public class Room {
     }
 
     public boolean overlaps(Room other) {
-        Rectangle a = new Rectangle(x - 1, y - 1, width + 2, height + 2);
-        Rectangle b = new Rectangle(other.x, other.y, other.width, other.height);
-        return a.overlaps(b);
+        int ax = x - 1, ay = y - 1, aw = width + 2, ah = height + 2;
+        return ax < other.x + other.width && ax + aw > other.x
+                && ay < other.y + other.height && ay + ah > other.y;
     }
 }

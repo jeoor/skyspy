@@ -20,7 +20,7 @@ public class SpawnerSystem {
         if (timer > 0f) {
             return;
         }
-        timer = spawnInterval(world.floor);
+        timer = spawnInterval(world.floor) * world.difficulty.spawnIntervalMultiplier;
         if (world.enemies.size < maxEnemies(world)) {
             trySpawn(world, false);
         }
@@ -35,7 +35,8 @@ public class SpawnerSystem {
     }
 
     public int maxEnemies(GameWorld world) {
-        return 8 + world.floor * 2 + (world.biome == null ? 0 : world.biome.extraEnemies);
+        return 8 + world.floor * 2 + (world.biome == null ? 0 : world.biome.extraEnemies)
+                + world.difficulty.extraMaxEnemies;
     }
 
     public float spawnInterval(int floor) {
@@ -63,7 +64,7 @@ public class SpawnerSystem {
                 continue;
             }
 
-            world.enemies.add(new Enemy(randomType(world), x, y, world.floor, world.biome));
+            world.addEnemy(new Enemy(randomType(world), x, y, world.floor, world.biome, world.difficulty));
             return true;
         }
         return false;

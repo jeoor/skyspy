@@ -10,9 +10,17 @@ public class AttackEffect {
     public float timer = DURATION;
 
     public AttackEffect(Vector2 origin, Vector2 direction) {
-        Vector2 normal = new Vector2(-direction.y, direction.x).nor();
-        start.set(origin).mulAdd(direction, 18f).mulAdd(normal, -14f);
-        end.set(origin).mulAdd(direction, 48f).mulAdd(normal, 14f);
+        float nx = -direction.y;
+        float ny = direction.x;
+        float len = (float) Math.sqrt(nx * nx + ny * ny);
+        if (len > 0.001f) {
+            nx /= len;
+            ny /= len;
+        }
+        start.set(origin.x + direction.x * 18f + nx * -14f,
+                  origin.y + direction.y * 18f + ny * -14f);
+        end.set(origin.x + direction.x * 48f + nx * 14f,
+                origin.y + direction.y * 48f + ny * 14f);
     }
 
     public void update(float delta) {

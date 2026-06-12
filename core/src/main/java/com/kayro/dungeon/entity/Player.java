@@ -5,6 +5,45 @@ import com.badlogic.gdx.utils.Array;
 import com.kayro.dungeon.world.GameWorld;
 
 public class Player extends LivingEntity {
+
+    public static class State {
+        public int hp, maxHp, attack, defense, level, exp, gold, keys, potions;
+        public WeaponType weapon;
+        public final Array<RelicType> relics = new Array<>();
+    }
+
+    public State saveState() {
+        State s = new State();
+        s.hp = hp;
+        s.maxHp = maxHp;
+        s.attack = attack;
+        s.defense = defense;
+        s.level = level;
+        s.exp = exp;
+        s.gold = gold;
+        s.keys = keys;
+        s.potions = potions;
+        s.weapon = weapon;
+        s.relics.addAll(relics);
+        return s;
+    }
+
+    public void restoreState(State s) {
+        hp = s.hp;
+        maxHp = s.maxHp;
+        attack = s.attack;
+        defense = s.defense;
+        level = s.level;
+        exp = s.exp;
+        gold = s.gold;
+        keys = s.keys;
+        potions = s.potions;
+        equipWeapon(s.weapon);
+        for (RelicType relic : s.relics) {
+            addRelic(relic);
+        }
+    }
+
     private final Vector2 dashDirection = new Vector2();
 
     public final Array<RelicType> relics = new Array<>();

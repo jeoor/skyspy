@@ -40,7 +40,6 @@ public class GameAssets implements Disposable {
     public final TextureRegion heartIcon;
     public final TextureRegion expIcon;
     public final TextureRegion shieldIcon;
-    public final TextureRegion emptyHeartGauge;
     public final TextureRegion chestClosed;
     public final TextureRegion chestOpen;
     public final TextureRegion[] chestOpenFrames;
@@ -89,7 +88,6 @@ public class GameAssets implements Disposable {
         heartIcon = cell(uiSheet, 5, 1);
         expIcon = cell(uiSheet, 5, 2);
         shieldIcon = cell(uiSheet, 6, 2);
-        emptyHeartGauge = region(uiSheet, TILE * 5, 0, TILE * 5, TILE * 2);
         chestOpenFrames = new TextureRegion[] {
                 cell(propsSheet, 0, 6), cell(propsSheet, 1, 6), cell(propsSheet, 2, 6), cell(propsSheet, 3, 6)
         };
@@ -227,13 +225,6 @@ public class GameAssets implements Disposable {
             return null;
         }
         return new TextureRegion(texture, x, y, TILE, TILE);
-    }
-
-    private TextureRegion region(Texture texture, int x, int y, int width, int height) {
-        if (texture == null || x + width > texture.getWidth() || y + height > texture.getHeight()) {
-            return null;
-        }
-        return new TextureRegion(texture, x, y, width, height);
     }
 
     private TextureRegion first(TextureRegion[] regions) {

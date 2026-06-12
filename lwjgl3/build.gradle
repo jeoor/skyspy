@@ -12,10 +12,35 @@ dependencies {
     implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
 }
 
+def currentOs = org.gradle.internal.os.OperatingSystem.current()
+def appImageDir = {
+    currentOs.isMacOsX() ? file("build/jpackage/DungeonForge.app") : file("build/jpackage/DungeonForge")
+}
+def appAssetsDir = {
+    currentOs.isMacOsX()
+        ? file("build/jpackage/DungeonForge.app/Contents/app/assets")
+        : file("build/jpackage/DungeonForge/app/assets")
+}
+def appOutputPath = {
+    currentOs.isMacOsX()
+        ? "lwjgl3/build/jpackage/DungeonForge.app"
+        : "lwjgl3/build/jpackage/DungeonForge/DungeonForge.exe"
+}
+def currentJavaBin = {
+    file("${System.getProperty("java.home")}/bin")
+}
+def jpackageExecutable = {
+    def extension = currentOs.isWindows() ? ".exe" : ""
+    currentJavaBin().toPath().resolve("jpackage${extension}").toFile().absolutePath
+}
+
 sourceSets.main.java.srcDirs += project(":core").file("src/main/java")
 
 tasks.named("run") {
     workingDir = rootProject.file("assets")
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+        jvmArgs += "-XstartOnFirstThread"
+    }
 }
 
 tasks.named("compileJava") {
@@ -50,10 +75,10 @@ tasks.register("jpackageExe", Exec) {
     def jarDir = file("build/libs").absolutePath
     def outputDir = file("build/jpackage").absolutePath
     doFirst {
-        delete file("build/jpackage/DungeonForge")
+        delete appImageDir()
     }
 
-    commandLine "jpackage",
+    def jpackageArgs = [
         "--type", "app-image",
         "--name", "DungeonForge",
         "--input", jarDir,
@@ -62,13 +87,24 @@ tasks.register("jpackageExe", Exec) {
         "--dest", outputDir,
         "--java-options", "-Dfile.encoding=UTF-8",
         "--java-options", "-Xmx512m"
+    ]
+    if (currentOs.isMacOsX()) {
+        jpackageArgs += ["--java-options", "-XstartOnFirstThread"]
+    }
+    doFirst {
+        if (!file(jpackageExecutable()).exists()) {
+            throw new GradleException("jpackage not found in current JDK: ${jpackageExecutable()}. Please run Gradle with a full JDK 17+.")
+        }
+        executable = jpackageExecutable()
+        args jpackageArgs
+    }
 }
 
 // 复制 assets 到打包目录
 tasks.register("copyAssets", Copy) {
     dependsOn "jpackageExe"
     from rootProject.file("assets")
-    into file("build/jpackage/DungeonForge/app/assets")
+    into appAssetsDir()
 }
 
 // 完整打包流程
@@ -77,8 +113,8 @@ tasks.register("buildExe") {
     doLast {
         println "========================================="
         println "  打包完成！"
-        println "  输出: lwjgl3/build/jpackage/DungeonForge/DungeonForge.exe"
-        println "  assets 已复制到 DungeonForge/app/assets/"
+        println "  输出: ${appOutputPath()}"
+        println "  assets 已复制到 ${appAssetsDir()}"
         println "========================================="
     }
 }

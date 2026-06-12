@@ -12,6 +12,7 @@ import com.kayro.dungeon.entity.WeaponType;
 import com.kayro.dungeon.screen.GameOverScreen;
 import com.kayro.dungeon.screen.GameScreen;
 import com.kayro.dungeon.screen.MainMenuScreen;
+import com.kayro.dungeon.util.Difficulty;
 
 public class DungeonForgeGame extends Game {
     private static final String PREFS_NAME = "DungeonForge";
@@ -23,6 +24,7 @@ public class DungeonForgeGame extends Game {
     public BitmapFont font;
     public Assets assets;
     public Sfx sfx;
+    public Difficulty difficulty = Difficulty.NORMAL;
     private Preferences preferences;
     private int highFloor;
     private int forgeSparks;

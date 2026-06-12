@@ -60,40 +60,13 @@ public enum BiomeType {
 
     public EnemyType randomEnemy(int floor) {
         float roll = MathUtils.random();
-        switch (this) {
-            case FUNGAL_HOLLOW:
-                if (floor <= 2) {
-                    return roll < 0.82f ? EnemyType.SLIME : EnemyType.GOBLIN;
-                }
-                if (roll < 0.58f) {
-                    return EnemyType.SLIME;
-                }
-                return roll < 0.88f ? EnemyType.GOBLIN : EnemyType.SKELETON;
-            case ASHEN_KEEP:
-                if (roll < 0.24f) {
-                    return EnemyType.SLIME;
-                }
-                return roll < 0.62f ? EnemyType.GOBLIN : EnemyType.SKELETON;
-            case FROST_CRYPT:
-                if (roll < 0.24f) {
-                    return EnemyType.SLIME;
-                }
-                return roll < 0.50f ? EnemyType.GOBLIN : EnemyType.SKELETON;
-            case CATACOMBS:
-            default:
-                if (floor <= 2) {
-                    return roll < 0.70f ? EnemyType.SLIME : EnemyType.GOBLIN;
-                }
-                if (floor <= 5) {
-                    if (roll < 0.45f) {
-                        return EnemyType.SLIME;
-                    }
-                    return roll < 0.85f ? EnemyType.GOBLIN : EnemyType.SKELETON;
-                }
-                if (roll < 0.30f) {
-                    return EnemyType.SLIME;
-                }
-                return roll < 0.70f ? EnemyType.GOBLIN : EnemyType.SKELETON;
+        float slimeWeight = Math.max(0.05f, 0.50f - floor * 0.07f);
+        float skeletonWeight = Math.min(0.75f, 0.12f + floor * 0.08f);
+        float goblinWeight = 1f - slimeWeight - skeletonWeight;
+
+        if (roll < slimeWeight) {
+            return EnemyType.SLIME;
         }
+        return roll < slimeWeight + goblinWeight ? EnemyType.GOBLIN : EnemyType.SKELETON;
     }
 }

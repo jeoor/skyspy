@@ -13,7 +13,7 @@ public class LevelSystem {
             player.exp -= expToNext(player);
             player.level++;
             player.maxHp += 15;
-            player.attack += 3;
+            player.attack += 4;
             player.defense += 1;
             player.hp = player.maxHp;
         }
