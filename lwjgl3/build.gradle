@@ -1,0 +1,84 @@
+plugins {
+    id "application"
+}
+
+application {
+    mainClass = "com.kayro.dungeon.lwjgl3.Lwjgl3Launcher"
+}
+
+dependencies {
+    implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+}
+
+sourceSets.main.java.srcDirs += project(":core").file("src/main/java")
+
+tasks.named("run") {
+    workingDir = rootProject.file("assets")
+}
+
+tasks.named("compileJava") {
+    options.incremental = false
+}
+
+// 创建包含所有依赖的 fat JAR
+tasks.register("fatJar", Jar) {
+    archiveClassifier.set("all")
+    manifest {
+        attributes "Main-Class": application.mainClass.get()
+    }
+    from sourceSets.main.output
+    from(rootProject.file("assets"))
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.named("jar") {
+    manifest {
+        attributes "Main-Class": application.mainClass.get()
+    }
+}
+
+// jpackage 配置 - 生成原生 exe
+tasks.register("jpackageExe", Exec) {
+    dependsOn "fatJar"
+
+    def jarDir = file("build/libs").absolutePath
+    def outputDir = file("build/jpackage").absolutePath
+    doFirst {
+        delete file("build/jpackage/DungeonForge")
+    }
+
+    commandLine "jpackage",
+        "--type", "app-image",
+        "--name", "DungeonForge",
+        "--input", jarDir,
+        "--main-jar", "lwjgl3-${version}-all.jar",
+        "--main-class", application.mainClass.get(),
+        "--dest", outputDir,
+        "--java-options", "-Dfile.encoding=UTF-8",
+        "--java-options", "-Xmx512m"
+}
+
+// 复制 assets 到打包目录
+tasks.register("copyAssets", Copy) {
+    dependsOn "jpackageExe"
+    from rootProject.file("assets")
+    into file("build/jpackage/DungeonForge/app/assets")
+}
+
+// 完整打包流程
+tasks.register("buildExe") {
+    dependsOn "copyAssets"
+    doLast {
+        println "========================================="
+        println "  打包完成！"
+        println "  输出: lwjgl3/build/jpackage/DungeonForge/DungeonForge.exe"
+        println "  assets 已复制到 DungeonForge/app/assets/"
+        println "========================================="
+    }
+}

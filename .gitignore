@@ -1,0 +1,42 @@
+# Gradle
+.gradle/
+build/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Java 编译
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# IDE - IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# IDE - Eclipse
+.classpath
+.project
+.settings/
+bin/
+out/
+
+# IDE - VSCode
+.vscode/
+
+# OS 文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# libGDX / LWJGL
+lwjgl3/build/
+lwjgl3/bin/
+core/build/
+core/bin/
+
+# 本地配置
+local.properties
