@@ -1,8 +1,8 @@
-# README media
+# README 演示
 
-这里放 README 中引用的演示 GIF。
+这里存放 README 中引用的演示动图。
 
-建议文件名：
+演示媒体文件：
 
 - `gameplay-overview.gif`：进入浮岛、探索、战斗、收集碎片并进入裂隙的完整短流程。
 - `fall-void.gif`：玩家或敌人离开浮岛边缘后坠落死亡。

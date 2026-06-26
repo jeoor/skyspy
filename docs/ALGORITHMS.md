@@ -1,6 +1,6 @@
 # Sky Spy 算法说明
 
-这份文档用于答辩时补充 README 中的算法部分，重点说明“为什么地图可通、敌人能追、白雾合理”。
+这份文档补充 README 中的算法部分，重点说明“为什么地图可通、敌人能追、白雾合理”。
 
 ## 1. 浮岛地图生成
 
@@ -96,7 +96,7 @@ DungeonMap generate() {
 - 主路线一定能走通。
 - 加 loop 边后仍有分支和探索感。
 
-答辩时可以概括为：
+简要说明：
 
 > Delaunay 负责“谁适合连谁”，MST 负责“所有关键点必须连起来”，loop 边负责“每局不要只有一条死路线”。
 
@@ -152,7 +152,7 @@ for (GraphEdge edge : edges) {
 - 通过 `edgeExposureCost` 提高平台边缘格子的代价。
 - 敌人会倾向走更安全的内侧路线，减少自己走下平台的情况。
 
-答辩重点：
+核心说明：
 
 > A* 负责“能追上玩家”，边缘代价负责“不要自己冲进虚空”。
 
@@ -274,7 +274,7 @@ float t = clamp((distance - clearRadius) / (fogRadius - clearRadius), 0f, 1f);
 float fogAlpha = smoothstep(t) * maxFogAlpha;
 ```
 
-答辩时不用强调具体数值，重点讲清楚：
+白雾系统的重点是：
 
 - 中心清晰，边缘变白。
 - 视野外不仅看不清地图，也看不到敌人 UI。
