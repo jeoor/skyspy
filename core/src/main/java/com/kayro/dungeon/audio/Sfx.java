@@ -8,6 +8,7 @@ import com.badlogic.gdx.utils.Disposable;
 
 public class Sfx implements Disposable {
     private final Sound[] attacks;
+    private final Sound[] shots;
     private final Sound[] hits;
     private final Sound[] pickups;
     private final Sound[] potions;
@@ -18,31 +19,26 @@ public class Sfx implements Disposable {
     private final Sound[] footsteps;
 
     public Sfx() {
-        attacks = loadAll("Audio/knifeSlice.ogg", "Audio/knifeSlice2.ogg",
-                "Audio/drawKnife1.ogg", "Audio/drawKnife2.ogg", "Audio/drawKnife3.ogg");
-        hits = loadAll("Audio/chop.ogg", "Audio/cloth1.ogg", "Audio/cloth2.ogg",
-                "Audio/cloth3.ogg", "Audio/cloth4.ogg");
-        pickups = loadAll("Audio/handleCoins.ogg", "Audio/handleCoins2.ogg",
-                "Audio/handleSmallLeather.ogg", "Audio/handleSmallLeather2.ogg",
-                "Audio/beltHandle1.ogg", "Audio/beltHandle2.ogg");
-        potions = loadAll("Audio/metalPot1.ogg", "Audio/metalPot2.ogg", "Audio/metalPot3.ogg",
-                "Audio/metalClick.ogg");
-        stairs = loadAll("Audio/doorOpen_1.ogg", "Audio/doorOpen_2.ogg",
-                "Audio/creak1.ogg", "Audio/creak2.ogg", "Audio/creak3.ogg");
-        deaths = loadAll("Audio/dropLeather.ogg", "Audio/cloth3.ogg", "Audio/cloth4.ogg",
-                "Audio/metalPot3.ogg");
-        dashes = loadAll("Audio/clothBelt.ogg", "Audio/clothBelt2.ogg",
-                "Audio/beltHandle1.ogg", "Audio/beltHandle2.ogg");
-        chests = loadAll("Audio/metalLatch.ogg", "Audio/metalClick.ogg",
-                "Audio/creak1.ogg", "Audio/creak2.ogg");
-        footsteps = loadAll("Audio/footstep00.ogg", "Audio/footstep01.ogg",
-                "Audio/footstep02.ogg", "Audio/footstep03.ogg", "Audio/footstep04.ogg",
-                "Audio/footstep05.ogg", "Audio/footstep06.ogg", "Audio/footstep07.ogg",
-                "Audio/footstep08.ogg", "Audio/footstep09.ogg");
+        attacks = loadAll("sounds/wooshMono.ogg");
+        shots = loadAll("sounds/laser.ogg");
+        hits = loadAll("sounds/blast1.ogg");
+        pickups = loadAll("sounds/gotitem.ogg");
+        potions = loadAll("sounds/espark.ogg");
+        stairs = loadAll("sounds/electricHum.ogg", "sounds/creak.ogg");
+        deaths = loadAll("sounds/blast1.ogg");
+        dashes = loadAll("sounds/woosh.ogg", "sounds/wooshMono.ogg");
+        chests = loadAll("sounds/creak.ogg");
+        footsteps = loadAll("sounds/footstepDirt1.ogg", "sounds/footstepDirt2.ogg",
+                "sounds/footstepDirt3.ogg", "sounds/footstepDirt4.ogg",
+                "sounds/footstepDirt5.ogg");
     }
 
     public void attack() {
         playRandom(attacks, 0.42f);
+    }
+
+    public void shoot() {
+        playRandom(shots, 0.40f);
     }
 
     public void hit() {
@@ -87,7 +83,10 @@ public class Sfx implements Disposable {
 
     private Sound load(String path) {
         FileHandle file = Gdx.files.internal(path);
-        return file.exists() ? Gdx.audio.newSound(file) : null;
+        if (!file.exists()) {
+            throw new com.badlogic.gdx.utils.GdxRuntimeException("asset [crash]: missing resource " + path);
+        }
+        return Gdx.audio.newSound(file);
     }
 
     private void playRandom(Sound[] sounds, float volume) {
@@ -107,6 +106,7 @@ public class Sfx implements Disposable {
     @Override
     public void dispose() {
         dispose(attacks);
+        dispose(shots);
         dispose(hits);
         dispose(pickups);
         dispose(potions);

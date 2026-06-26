@@ -25,7 +25,7 @@ public class Lwjgl3Launcher {
         }
 
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
-        config.setTitle("DungeonForge");
+        config.setTitle("Sky Spy");
         config.setWindowedMode(1280, 720);
         config.setForegroundFPS(60);
         config.useVsync(true);

@@ -1,11 +1,11 @@
 package com.kayro.dungeon.entity;
 
 public enum ShopItem {
-    POTION("Potion", "Restore 40 HP", 40),
-    ATK_BOOST("+3 Attack", "Permanent ATK up", 80),
-    DEF_BOOST("+2 Defense", "Permanent DEF up", 65),
-    KEY("Key", "Opens stairs", 55),
-    MAX_HP("+20 Max HP", "Permanent HP up", 90);
+    POTION("修补", "回血", 40),
+    ATK_BOOST("准星", "伤害+", 80),
+    DEF_BOOST("外壳", "防御+", 65),
+    KEY("碎片", "开裂隙", 55),
+    MAX_HP("身体", "生命+", 90);
 
     public final String label;
     public final String description;

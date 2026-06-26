@@ -1,7 +1,7 @@
 package com.kayro.dungeon.world;
 
 public enum TileType {
-    WALL,
+    VOID,
     FLOOR,
     STAIRS_DOWN
 }

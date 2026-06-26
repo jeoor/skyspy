@@ -22,10 +22,10 @@ public class PathfindingSystem {
     private int generation;
 
     public boolean findNextStep(GameWorld world, Vector2 from, Vector2 to, Vector2 out) {
-        int startX = world.map.worldToTile(from.x);
-        int startY = world.map.worldToTile(from.y);
-        int goalX = world.map.worldToTile(to.x);
-        int goalY = world.map.worldToTile(to.y);
+        int startX = world.map.worldToTileX(from.x);
+        int startY = world.map.worldToTileY(from.y);
+        int goalX = world.map.worldToTileX(to.x);
+        int goalY = world.map.worldToTileY(to.y);
         if (!isWalkable(world, startX, startY) || !isWalkable(world, goalX, goalY)) {
             return false;
         }
@@ -64,7 +64,7 @@ public class PathfindingSystem {
                 if (isClosedNode(next)) {
                     continue;
                 }
-                float tentative = getGScore(current.index) + 1f;
+                float tentative = getGScore(current.index) + 1f + edgeExposureCost(world, nextX, nextY);
                 if (tentative >= getGScore(next)) {
                     continue;
                 }
@@ -87,7 +87,7 @@ public class PathfindingSystem {
         }
         int stepX = step % WIDTH;
         int stepY = step / WIDTH;
-        out.set((stepX + 0.5f) * Constants.TILE_SIZE, (stepY + 0.5f) * Constants.TILE_SIZE);
+        out.set(world.map.tileCenterX(stepX), world.map.tileCenterY(stepY));
         return true;
     }
 
@@ -109,36 +109,6 @@ public class PathfindingSystem {
         return closedGen[idx] == generation;
     }
 
-    public boolean hasWalkableLine(GameWorld world, Vector2 from, Vector2 to) {
-        int x0 = world.map.worldToTile(from.x);
-        int y0 = world.map.worldToTile(from.y);
-        int x1 = world.map.worldToTile(to.x);
-        int y1 = world.map.worldToTile(to.y);
-        int dx = Math.abs(x1 - x0);
-        int dy = Math.abs(y1 - y0);
-        int sx = x0 < x1 ? 1 : -1;
-        int sy = y0 < y1 ? 1 : -1;
-        int err = dx - dy;
-
-        while (true) {
-            if (!isWalkable(world, x0, y0)) {
-                return false;
-            }
-            if (x0 == x1 && y0 == y1) {
-                return true;
-            }
-            int e2 = err * 2;
-            if (e2 > -dy) {
-                err -= dy;
-                x0 += sx;
-            }
-            if (e2 < dx) {
-                err += dx;
-                y0 += sy;
-            }
-        }
-    }
-
     private boolean isWalkable(GameWorld world, int x, int y) {
         if (!world.map.isWalkableTile(x, y)) {
             return false;
@@ -147,13 +117,23 @@ public class PathfindingSystem {
             if (!chest.blocksMovement()) {
                 continue;
             }
-            int chestX = world.map.worldToTile(chest.getCenter().x);
-            int chestY = world.map.worldToTile(chest.getCenter().y);
+            int chestX = world.map.worldToTileX(chest.getCenter().x);
+            int chestY = world.map.worldToTileY(chest.getCenter().y);
             if (chestX == x && chestY == y) {
                 return false;
             }
         }
         return true;
+    }
+
+    private float edgeExposureCost(GameWorld world, int x, int y) {
+        int exposedSides = 0;
+        for (int i = 0; i < DIR_X.length; i++) {
+            if (!world.map.isWalkableTile(x + DIR_X[i], y + DIR_Y[i])) {
+                exposedSides++;
+            }
+        }
+        return exposedSides * 0.75f;
     }
 
     private int index(int x, int y) {

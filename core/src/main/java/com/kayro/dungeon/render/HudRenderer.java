@@ -11,65 +11,73 @@ import com.kayro.dungeon.util.Constants;
 import com.kayro.dungeon.world.GameWorld;
 
 public class HudRenderer {
-    private final MinimapRenderer minimapRenderer = new MinimapRenderer();
+    private static final Color TEXT = new Color(0.06f, 0.10f, 0.18f, 1f);
+    private static final Color DIM = new Color(0.30f, 0.38f, 0.52f, 1f);
+    private static final Color TRACK = new Color(0.78f, 0.86f, 0.95f, 0.76f);
+    private static final Color ACCENT = new Color(0.02f, 0.62f, 0.70f, 1f);
+    private static final Color RED = new Color(0.90f, 0.06f, 0.08f, 1f);
+    private static final Color BLUE = new Color(0.20f, 0.45f, 0.95f, 1f);
+    private static final Color SHADOW = new Color(0.94f, 0.97f, 1f, 0.70f);
+    private static final float MARGIN = 44f;
+    private static final float BAR_X = MARGIN + 32f;
+    private static final float BAR_WIDTH = 142f;
 
-    public void render(GameWorld world, SpriteBatch batch, ShapeRenderer shapes, BitmapFont font, GameAssets assets) {
+    public void render(GameWorld world, SpriteBatch batch, ShapeRenderer shapes, BitmapFont font, GameAssets assets,
+                       boolean showControlHint) {
+        float hpRatio = world.player.hp / (float)world.player.maxHp;
         float expRatio = world.player.exp / (float)world.levelSystem.expToNext(world.player);
-        float barX = 66f;
-        float barWidth = 170f;
+        float top = Constants.HUD_HEIGHT - MARGIN;
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(0f, 0f, 0f, 0.45f);
-        shapes.rect(18f, Constants.HUD_HEIGHT - 108f, 420f, 88f);
-        shapes.setColor(0.22f, 0.04f, 0.05f, 1f);
-        shapes.rect(barX, Constants.HUD_HEIGHT - 52f, barWidth, 16f);
-        shapes.setColor(0.75f, 0.08f, 0.10f, 1f);
-        shapes.rect(barX, Constants.HUD_HEIGHT - 52f, barWidth * world.player.hp / (float)world.player.maxHp, 16f);
-        shapes.setColor(0.05f, 0.08f, 0.18f, 1f);
-        shapes.rect(barX, Constants.HUD_HEIGHT - 80f, barWidth, 12f);
-        shapes.setColor(0.20f, 0.45f, 0.95f, 1f);
-        shapes.rect(barX, Constants.HUD_HEIGHT - 80f, barWidth * expRatio, 12f);
-        minimapRenderer.render(world, shapes, Constants.HUD_WIDTH - 248f, 54f, 220f, 160f);
+        shapes.setColor(TRACK);
+        shapes.rect(BAR_X, top - 25f, BAR_WIDTH, 8f);
+        shapes.setColor(RED);
+        shapes.rect(BAR_X, top - 25f, BAR_WIDTH * hpRatio, 8f);
+        shapes.setColor(TRACK);
+        shapes.rect(BAR_X, top - 48f, BAR_WIDTH, 7f);
+        shapes.setColor(BLUE);
+        shapes.rect(BAR_X, top - 48f, BAR_WIDTH * expRatio, 7f);
         shapes.end();
 
         batch.begin();
-        drawIcon(batch, assets.heartIcon, 32f, Constants.HUD_HEIGHT - 57f, 22f);
-        drawIcon(batch, assets.expIcon, 32f, Constants.HUD_HEIGHT - 86f, 22f);
-        drawIcon(batch, assets.sword, 262f, Constants.HUD_HEIGHT - 62f, 20f);
-        drawIcon(batch, assets.shieldIcon, 330f, Constants.HUD_HEIGHT - 62f, 20f);
-        drawIcon(batch, assets.coin, 944f, Constants.HUD_HEIGHT - 42f, 20f);
-        drawIcon(batch, assets.potion, 1018f, Constants.HUD_HEIGHT - 42f, 20f);
-        drawIcon(batch, assets.key, 1110f, Constants.HUD_HEIGHT - 42f, 20f);
-        drawIcon(batch, assets.arrow, 944f, Constants.HUD_HEIGHT - 68f, 18f);
+        font.getData().setScale(0.82f);
+        drawText(font, batch, world.reviewMode ? "回顾" : "阶 " + world.floor, MARGIN, top + 10f, TEXT);
+        drawIcon(batch, assets.heartIcon, MARGIN, top - 30f, 14f);
+        drawIcon(batch, assets.expIcon, MARGIN, top - 53f, 14f);
+        drawText(font, batch, world.player.hp + "/" + world.player.maxHp,
+                BAR_X + BAR_WIDTH + 12f, top - 18f, TEXT);
+        drawText(font, batch, world.player.exp + "/" + world.levelSystem.expToNext(world.player),
+                BAR_X + BAR_WIDTH + 12f, top - 41f, DIM);
 
-        font.getData().setScale(1.0f);
+        float rightX = Constants.HUD_WIDTH - MARGIN - 246f;
+        drawIcon(batch, assets.key, rightX, top - 6f, 18f);
+        drawIcon(batch, assets.potion, rightX + 86f, top - 5f, 16f);
+        drawIcon(batch, assets.coin, rightX + 168f, top - 5f, 16f);
+        font.getData().setScale(0.86f);
+        drawText(font, batch, String.valueOf(world.player.keys), rightX + 26f, top + 9f, TEXT);
+        drawText(font, batch, String.valueOf(world.player.potions), rightX + 110f, top + 9f, TEXT);
+        drawText(font, batch, String.valueOf(world.player.gold), rightX + 192f, top + 9f, TEXT);
+        font.getData().setScale(0.70f);
+        drawText(font, batch, "碎片", rightX, top - 16f, DIM);
+        drawText(font, batch, "修补", rightX + 84f, top - 16f, DIM);
+        drawText(font, batch, "回响", rightX + 166f, top - 16f, DIM);
+
+        font.getData().setScale(0.78f);
+        Color riftColor = world.reviewMode || world.exitReady() ? ACCENT : DIM;
+        drawText(font, batch, world.reviewMode ? world.reviewFloorComplete() ? "裂隙可用" : "安抚中"
+                        : world.exitReady() ? "裂隙可用" : "找碎片",
+                rightX, top - 43f, riftColor);
+        drawText(font, batch, world.player.dashCooldownTimer <= 0f ? "冲刺就绪" : "冲刺冷却",
+                rightX + 118f, top - 43f, world.player.dashCooldownTimer <= 0f ? ACCENT : DIM);
+
+        if (showControlHint) {
+            font.getData().setScale(0.76f);
+            drawCenteredText(font, batch, world.reviewMode ? "WASD 移动   E安抚   ESC"
+                            : "WASD 移动   Shift 冲刺   鼠标射击   Q药   E交互   ESC",
+                    24f, DIM);
+        }
         font.setColor(Color.WHITE);
-        font.draw(batch, world.player.hp + "/" + world.player.maxHp, barX + 8f, Constants.HUD_HEIGHT - 58f);
-        font.draw(batch, world.player.exp + "/" + world.levelSystem.expToNext(world.player), barX + 8f,
-                Constants.HUD_HEIGHT - 84f);
-        font.draw(batch, String.valueOf(world.player.attackDamage()), 286f, Constants.HUD_HEIGHT - 47f);
-        font.draw(batch, String.valueOf(world.player.defense), 354f, Constants.HUD_HEIGHT - 47f);
-        font.draw(batch, "Lv " + world.player.level + "  " + world.player.weapon.label + "  R" + world.player.relics.size,
-                262f, Constants.HUD_HEIGHT - 76f);
-        font.draw(batch, "F" + world.floor + " " + world.biome.label + "  E" + world.enemies.size
-                        + "  K" + world.kills,
-                32f, Constants.HUD_HEIGHT - 24f);
-        font.draw(batch, String.valueOf(world.player.gold), 968f, Constants.HUD_HEIGHT - 24f);
-        font.draw(batch, String.valueOf(world.player.potions), 1042f, Constants.HUD_HEIGHT - 24f);
-        font.draw(batch, String.valueOf(world.player.keys), 1134f, Constants.HUD_HEIGHT - 24f);
-        String skillText = world.player.skillCooldownTimer > 0f
-                ? String.format("%.1fs", world.player.skillCooldownTimer)
-                : "Ready";
-        font.draw(batch, skillText, 968f, Constants.HUD_HEIGHT - 50f);
-        String dashText = world.player.dashCooldownTimer > 0f
-                ? "Dash " + String.format("%.1fs", world.player.dashCooldownTimer)
-                : "Dash Ready";
-        font.draw(batch, dashText, 944f, Constants.HUD_HEIGHT - 76f);
-        font.setColor(world.exitReady() ? Color.GOLD : Color.LIGHT_GRAY);
-        font.draw(batch, objectiveText(world), 944f, Constants.HUD_HEIGHT - 102f);
-        font.setColor(0.72f, 0.78f, 0.86f, 1f);
-        font.draw(batch, "WASD Move   Shift Dash   J/LMB Attack   K/RMB Arrow   Q Potion   E Pickup/Stairs   ESC Pause",
-                0f, 34f, Constants.HUD_WIDTH, Align.center, false);
+        font.getData().setScale(1.0f);
         batch.end();
     }
 
@@ -79,13 +87,17 @@ public class HudRenderer {
         }
     }
 
-    private String objectiveText(GameWorld world) {
-        if (world.hasLiveBoss()) {
-            return "Goal: defeat boss";
-        }
-        if (world.player.keys <= 0) {
-            return "Goal: find a key";
-        }
-        return "Goal: use stairs";
+    private void drawText(BitmapFont font, SpriteBatch batch, String text, float x, float y, Color color) {
+        font.setColor(SHADOW);
+        font.draw(batch, text, x + 1f, y - 1f);
+        font.setColor(color);
+        font.draw(batch, text, x, y);
+    }
+
+    private void drawCenteredText(BitmapFont font, SpriteBatch batch, String text, float y, Color color) {
+        font.setColor(SHADOW);
+        font.draw(batch, text, 1f, y - 1f, Constants.HUD_WIDTH, Align.center, false);
+        font.setColor(color);
+        font.draw(batch, text, 0f, y, Constants.HUD_WIDTH, Align.center, false);
     }
 }

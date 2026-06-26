@@ -11,6 +11,8 @@ public class InputHandler {
     public boolean mouseAttackPressed;
     public boolean skillPressed;
     public boolean mouseSkillPressed;
+    public boolean shootHeld;
+    public boolean mouseShootHeld;
     public boolean interactPressed;
     public boolean usePotionPressed;
     public boolean dashPressed;
@@ -18,6 +20,11 @@ public class InputHandler {
     public void update() {
         mouseAttackPressed = Gdx.input.isButtonJustPressed(Input.Buttons.LEFT);
         mouseSkillPressed = Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT);
+        mouseShootHeld = Gdx.input.isButtonPressed(Input.Buttons.LEFT)
+                || Gdx.input.isButtonPressed(Input.Buttons.RIGHT);
+        shootHeld = Gdx.input.isKeyPressed(Input.Keys.J)
+                || Gdx.input.isKeyPressed(Input.Keys.K)
+                || mouseShootHeld;
         attackPressed = Gdx.input.isKeyJustPressed(Input.Keys.J) || mouseAttackPressed;
         skillPressed = Gdx.input.isKeyJustPressed(Input.Keys.K) || mouseSkillPressed;
         interactPressed = Gdx.input.isKeyJustPressed(Input.Keys.E);

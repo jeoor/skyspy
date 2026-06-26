@@ -7,15 +7,18 @@ public class LevelSystem {
         return 50 + player.level * 35;
     }
 
-    public void gainExp(Player player, int amount) {
+    public int gainExp(Player player, int amount) {
+        int levelsGained = 0;
         player.exp += amount;
         while (player.exp >= expToNext(player)) {
             player.exp -= expToNext(player);
             player.level++;
+            levelsGained++;
             player.maxHp += 15;
             player.attack += 4;
             player.defense += 1;
             player.hp = player.maxHp;
         }
+        return levelsGained;
     }
 }

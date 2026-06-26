@@ -8,22 +8,21 @@ import com.kayro.dungeon.entity.AnimationState;
 import com.kayro.dungeon.entity.Enemy;
 import com.kayro.dungeon.entity.EnemyActionState;
 import com.kayro.dungeon.entity.EnemyType;
+import com.kayro.dungeon.entity.Item;
+import com.kayro.dungeon.entity.ItemType;
 import com.kayro.dungeon.entity.Player;
 import com.kayro.dungeon.entity.Projectile;
+import com.kayro.dungeon.entity.StoryBossKind;
 import com.kayro.dungeon.world.GameWorld;
 
 public class CombatSystem {
-    private static final float MELEE_HIT_STOP = 0.045f;
-    private static final float MELEE_KILL_HIT_STOP = 0.06f;
-    private static final float MELEE_KNOCKBACK = 22f;
-    private static final float MELEE_KILL_KNOCKBACK = 34f;
-    private static final float PROJECTILE_HIT_STOP = 0.03f;
-    private static final float PROJECTILE_KNOCKBACK = 18f;
+    private static final float PROJECTILE_HIT_STOP = 0.045f;
 
     private final Vector2 skillDirection = new Vector2();
-    private final Vector2 tmpFacing = new Vector2();
     private final Vector2 tmpDirection = new Vector2();
     private final Vector2 tmpKnockback = new Vector2();
+    private final Vector2 shotOrigin = new Vector2();
+    private final Vector2 shotDirection = new Vector2();
 
     public void update(GameWorld world, float delta) {
         if (world.input.usePotionPressed) {
@@ -38,13 +37,7 @@ public class CombatSystem {
             }
         }
 
-        if (world.input.attackPressed && world.player.attackTimer <= 0f) {
-            playerAttack(world);
-        }
-
-        if (world.input.skillPressed && world.player.skillCooldownTimer <= 0f) {
-            playerArrowSkill(world);
-        }
+        updatePlayerShoot(world);
 
         for (Enemy enemy : world.enemies) {
             enemy.update(delta, world);
@@ -55,76 +48,29 @@ public class CombatSystem {
         removeFinishedDeadEnemies(world);
     }
 
-    private void playerAttack(GameWorld world) {
+    private void updatePlayerShoot(GameWorld world) {
         Player player = world.player;
-        player.attackTimer = player.attackCooldown;
-        player.setAnimationState(AnimationState.ATTACK);
-        if (world.sfx != null) {
-            world.sfx.attack();
+        if (!world.input.shootHeld || player.isDead()) {
+            return;
         }
-        Vector2 playerCenter = player.getCenter();
-        float pcx = playerCenter.x;
-        float pcy = playerCenter.y;
-        tmpFacing.set(player.facing.vector);
-        if (world.input.mouseAttackPressed) {
-            tmpFacing.set(world.input.mouseWorld).sub(pcx, pcy);
-            if (tmpFacing.isZero(0.01f)) {
-                tmpFacing.set(player.facing.vector);
-            } else {
-                tmpFacing.nor();
-            }
+        Vector2 direction = aimDirection(world);
+        player.updateFacing(direction);
+        if (player.shootPrepTimer <= 0f) {
+            player.shootPrepTimer = Player.SHOOT_PREP_TIME;
+            return;
         }
-        world.addAttackEffect(playerCenter, tmpFacing);
-        for (int i = world.enemies.size - 1; i >= 0; i--) {
-            Enemy enemy = world.enemies.get(i);
-            if (enemy.isDead()) {
-                continue;
-            }
-            Vector2 enemyCenter = enemy.getCenter();
-            float ecx = enemyCenter.x;
-            float ecy = enemyCenter.y;
-            float distance = Vector2.dst(pcx, pcy, ecx, ecy);
-            if (distance > player.meleeRange()) {
-                continue;
-            }
-
-            tmpDirection.set(ecx - pcx, ecy - pcy);
-            if (tmpDirection.isZero(0.01f)) {
-                tmpDirection.set(tmpFacing);
-            } else {
-                tmpDirection.nor();
-            }
-            if (tmpDirection.dot(tmpFacing) < 0.15f && distance > 30f) {
-                continue;
-            }
-
-            int beforeHp = enemy.hp;
-            int damage = playerDamage(player, enemy, player.attackDamage());
-            enemy.takeDamage(damage);
-            healFromDamage(world, Math.min(beforeHp, damage));
-            float knockback = (enemy.isDead() ? MELEE_KILL_KNOCKBACK : MELEE_KNOCKBACK)
-                    + player.knockbackBonus + player.weaponKnockbackBonus();
-            applyKnockback(world, enemy, tmpDirection, knockback);
-            world.hitStop(enemy.isDead() ? MELEE_KILL_HIT_STOP : MELEE_HIT_STOP);
-            if (world.sfx != null) {
-                world.sfx.hit();
-            }
-            world.addDamageText(String.valueOf(damage), enemy.getCenter().x, enemy.getCenter().y + 18f, Color.WHITE);
-            world.shake(enemy.isDead() ? 4f : 2.2f, 0.10f);
-
-            if (enemy.isDead()) {
-                finishEnemyKill(world, enemy);
-            }
+        if (player.shootPrepTimer >= Player.SHOOT_READY_TIME || player.shootBulletTimer > 0f) {
+            return;
         }
+        player.shootPrepTimer = Player.SHOOT_READY_TIME;
+        player.shootBulletTimer = Player.SHOOT_BULLET_COOLDOWN;
+        playerShoot(world, direction);
     }
 
-    private void playerArrowSkill(GameWorld world) {
+    private Vector2 aimDirection(GameWorld world) {
         Player player = world.player;
         Vector2 playerCenter = player.getCenter();
-        Enemy nearest = findNearestEnemy(world, playerCenter);
-        if (nearest != null) {
-            skillDirection.set(nearest.getCenter()).sub(playerCenter).nor();
-        } else if (world.input.mouseSkillPressed) {
+        if (world.input.mouseShootHeld) {
             skillDirection.set(world.input.mouseWorld).sub(playerCenter);
             if (skillDirection.isZero(0.01f)) {
                 skillDirection.set(player.facing.vector);
@@ -132,19 +78,65 @@ public class CombatSystem {
                 skillDirection.nor();
             }
         } else {
-            skillDirection.set(player.facing.vector);
+            Enemy nearest = findNearestEnemy(world, playerCenter);
+            if (nearest != null) {
+                skillDirection.set(nearest.getCenter()).sub(playerCenter).nor();
+            } else {
+                skillDirection.set(player.facing.vector);
+            }
         }
-        player.updateFacing(skillDirection);
-        player.skillCooldownTimer = player.skillCooldown;
-        player.setAnimationState(AnimationState.SKILL);
+        return skillDirection;
+    }
+
+    private void playerShoot(GameWorld world, Vector2 direction) {
+        Player player = world.player;
+        Vector2 origin = eyePosition(player, direction);
+        shotDirection.set(direction);
+        if (world.input.mouseShootHeld) {
+            aimAtMouseFromOrigin(world, origin, shotDirection);
+            origin = eyePosition(player, shotDirection);
+            aimAtMouseFromOrigin(world, origin, shotDirection);
+        }
+        player.updateFacing(shotDirection);
         if (world.sfx != null) {
-            world.sfx.attack();
+            world.sfx.shoot();
         }
-        float spawnX = playerCenter.x + skillDirection.x * 24f;
-        float spawnY = playerCenter.y + skillDirection.y * 24f;
-        Projectile projectile = new Projectile(spawnX, spawnY, skillDirection, 420f, player.arrowDamage());
+        world.onPlayerShot(shotDirection);
+        boolean boosted = player.consumeDashShotBoost();
+        int damage = player.arrowDamage() + (boosted ? 6 : 0);
+        Projectile projectile = new Projectile(origin.x, origin.y, shotDirection, player.projectileSpeed(), damage);
+        projectile.life = player.projectileLife() + (boosted ? 0.08f : 0f);
         projectile.pierceLeft = player.arrowPierceCount();
+        projectile.knockback = player.projectileKnockback() + (boosted ? 26f : 0f);
         world.projectiles.add(projectile);
+        world.addParticleBurst(origin.x, origin.y, boosted ? Color.GOLD : Color.CYAN, boosted ? 12 : 5);
+        if (boosted) {
+            world.addDamageText("残影", player.getCenter().x - 12f, player.getCenter().y + 28f, Color.GOLD);
+        }
+    }
+
+    private void aimAtMouseFromOrigin(GameWorld world, Vector2 origin, Vector2 out) {
+        out.set(world.input.mouseWorld).sub(origin);
+        if (out.isZero(0.01f)) {
+            out.set(world.player.facing.vector);
+        } else {
+            out.nor();
+        }
+    }
+
+    private Vector2 eyePosition(Player player, Vector2 direction) {
+        float eyeX = player.getCenter().x;
+        float eyeY = player.position.y + 68f;
+        if (direction != null && !direction.isZero(0.01f)) {
+            if (Math.abs(direction.x) > Math.abs(direction.y)) {
+                eyeX += Math.signum(direction.x) * 10f;
+            } else if (direction.y < -0.35f) {
+                eyeY -= 8f;
+            } else if (direction.y > 0.35f) {
+                eyeY += 4f;
+            }
+        }
+        return shotOrigin.set(eyeX, eyeY);
     }
 
     private void updateProjectiles(GameWorld world, float delta) {
@@ -184,6 +176,7 @@ public class CombatSystem {
             }
         }
         world.addDamageText("-" + damage, player.getCenter().x, player.getCenter().y + 22f, Color.SCARLET);
+        world.addParticleBurst(player.getCenter().x, player.getCenter().y, Color.SCARLET, 12);
         world.shake(player.isDead() ? 8f : 4.5f, 0.14f);
     }
 
@@ -200,24 +193,33 @@ public class CombatSystem {
             if (!bounds.overlaps(enemy.getBounds())) {
                 continue;
             }
+            if (world.blockDamageTo(enemy)) {
+                projectile.hitEnemies.add(enemy);
+                projectile.removed = true;
+                world.hitStop(PROJECTILE_HIT_STOP);
+                return;
+            }
             int beforeHp = enemy.hp;
             int damage = playerDamage(world.player, enemy, projectile.damage);
             enemy.takeDamage(damage);
+            world.recordStrongHit(damage);
             projectile.hitEnemies.add(enemy);
             healFromDamage(world, Math.min(beforeHp, damage));
+            crackWhiteShell(world, enemy);
             tmpKnockback.set(projectile.velocity);
             if (!tmpKnockback.isZero(0.01f)) {
                 tmpKnockback.nor();
-                applyKnockback(world, enemy, tmpKnockback,
-                        PROJECTILE_KNOCKBACK + world.player.knockbackBonus * 0.5f);
+                applyKnockback(world, enemy, tmpKnockback, projectile.knockback);
             }
             world.hitStop(PROJECTILE_HIT_STOP);
             if (world.sfx != null) {
                 world.sfx.hit();
             }
             world.addDamageText(String.valueOf(damage), enemy.getCenter().x,
-                    enemy.getCenter().y + 18f, Color.CYAN);
-            world.shake(enemy.isDead() ? 4f : 2.4f, 0.10f);
+                    enemy.getCenter().y + 18f, enemy.isDead() ? Color.GOLD : Color.CYAN);
+            world.addParticleBurst(enemy.getCenter().x, enemy.getCenter().y,
+                    enemy.isDead() ? Color.GOLD : Color.CYAN, enemy.isDead() ? 20 : 10);
+            world.shake(enemy.isDead() ? 4.5f : 2.8f, 0.11f);
             if (projectile.pierceLeft > 0) {
                 projectile.pierceLeft--;
             } else {
@@ -232,10 +234,25 @@ public class CombatSystem {
 
     private int playerDamage(Player player, Enemy enemy, int baseDamage) {
         int damage = Math.max(1, baseDamage - enemy.defense);
+        if (player.shellBreakDamageBonus > 0 && enemy.whiteHint >= 0.70f) {
+            damage += player.shellBreakDamageBonus;
+        }
         if (player.critChance() > 0 && MathUtils.random(100f) < player.critChance()) {
             damage = MathUtils.round(damage * 1.75f);
         }
         return damage;
+    }
+
+    private void crackWhiteShell(GameWorld world, Enemy enemy) {
+        if (enemy.type == EnemyType.CAT || enemy.storyBossKind == StoryBossKind.CAT) {
+            return;
+        }
+        boolean firstCrack = enemy.shellCrackTimer <= 0f;
+        enemy.shellCrackTimer = 0.34f;
+        if (firstCrack) {
+            world.shellBreaks++;
+            world.addDamageText("破壳", enemy.getCenter().x - 14f, enemy.getCenter().y + 36f, Color.WHITE);
+        }
     }
 
     private void healFromDamage(GameWorld world, int damage) {
@@ -249,6 +266,7 @@ public class CombatSystem {
         if (player.hp > before) {
             world.addDamageText("+" + (player.hp - before), player.getCenter().x,
                     player.getCenter().y + 28f, Color.GREEN);
+            world.addParticleBurst(player.getCenter().x, player.getCenter().y, Color.GREEN, 6);
         }
     }
 
@@ -266,8 +284,19 @@ public class CombatSystem {
         }
         enemy.rewardGranted = true;
         world.kills++;
-        world.levelSystem.gainExp(world.player, enemy.expReward);
-        world.lootSystem.dropForEnemy(world, enemy);
+        int levelsGained = world.levelSystem.gainExp(world.player, enemy.expReward);
+        if (levelsGained > 0) {
+            world.addDamageText("LEVEL UP", world.player.getCenter().x - 18f,
+                    world.player.getCenter().y + 34f, Color.GOLD);
+            world.addParticleBurst(world.player.getCenter().x, world.player.getCenter().y, Color.GOLD, 28);
+            world.shake(3f, 0.12f);
+        }
+        if (enemy.storyBossKind != StoryBossKind.NONE) {
+            world.items.add(new Item(ItemType.KEY, enemy.getCenter().x, enemy.getCenter().y, 1));
+            world.addDamageText("Memory", enemy.getCenter().x - 18f, enemy.getCenter().y + 26f, Color.WHITE);
+        } else {
+            world.lootSystem.dropForEnemy(world, enemy);
+        }
         if (world.sfx != null) {
             world.sfx.death();
         }
@@ -276,6 +305,10 @@ public class CombatSystem {
     private void removeFinishedDeadEnemies(GameWorld world) {
         for (int i = world.enemies.size - 1; i >= 0; i--) {
             Enemy enemy = world.enemies.get(i);
+            if (enemy.storyBossKind == StoryBossKind.CAT && enemy.isDeathAnimationDone()) {
+                enemy.removed = false;
+                continue;
+            }
             if (enemy.isDeathAnimationDone()) {
                 enemy.removed = true;
                 world.enemies.removeIndex(i);
@@ -314,6 +347,7 @@ public class CombatSystem {
         }
         player.invincibleTimer = 0.5f;
         world.addDamageText("-" + damage, player.getCenter().x, player.getCenter().y + 22f, Color.SCARLET);
+        world.addParticleBurst(player.getCenter().x, player.getCenter().y, Color.SCARLET, 12);
         world.shake(player.isDead() ? 8f : 5f, 0.16f);
     }
 
@@ -321,7 +355,16 @@ public class CombatSystem {
         if (enemy.type == EnemyType.GOBLIN) {
             return false;
         }
+        if (enemy.type == EnemyType.MIRROR) {
+            return false;
+        }
         if (enemy.type == EnemyType.SLIME) {
+            return enemy.actionState == EnemyActionState.SLIME_CHARGE;
+        }
+        if (enemy.type == EnemyType.CAT) {
+            return enemy.actionState == EnemyActionState.SLIME_CHARGE;
+        }
+        if (enemy.type == EnemyType.BOSS && enemy.storyBossKind == StoryBossKind.CAT) {
             return enemy.actionState == EnemyActionState.SLIME_CHARGE;
         }
         if (enemy.type == EnemyType.SKELETON || enemy.type == EnemyType.BOSS) {

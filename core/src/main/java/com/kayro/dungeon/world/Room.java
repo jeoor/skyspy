@@ -27,6 +27,10 @@ public class Room {
         return new Vector2((centerX() + 0.5f) * tileSize, (centerY() + 0.5f) * tileSize);
     }
 
+    public Vector2 centerWorld(int tileWidth, int tileHeight) {
+        return new Vector2((centerX() + 0.5f) * tileWidth, (centerY() + 0.5f) * tileHeight);
+    }
+
     public boolean overlaps(Room other) {
         int ax = x - 1, ay = y - 1, aw = width + 2, ah = height + 2;
         return ax < other.x + other.width && ax + aw > other.x

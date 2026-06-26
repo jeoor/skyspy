@@ -16,6 +16,9 @@ public class SpawnerSystem {
     }
 
     public void update(GameWorld world, float delta) {
+        if (!world.reviewMode && world.floor >= 5) {
+            return;
+        }
         timer -= delta;
         if (timer > 0f) {
             return;
@@ -27,6 +30,18 @@ public class SpawnerSystem {
     }
 
     public void spawnInitial(GameWorld world) {
+        if (!world.reviewMode && world.floor >= 5) {
+            reset();
+            return;
+        }
+        if (!world.reviewMode && world.floor == 1) {
+            int blankCount = MathUtils.random(4, 6);
+            for (int i = 0; i < blankCount; i++) {
+                trySpawn(world, true, EnemyType.SLIME);
+            }
+            reset();
+            return;
+        }
         int count = MathUtils.random(4, 6 + Math.min(4, world.floor));
         for (int i = 0; i < count; i++) {
             trySpawn(world, true);
@@ -44,6 +59,10 @@ public class SpawnerSystem {
     }
 
     public boolean trySpawn(GameWorld world, boolean ignoreVisibility) {
+        return trySpawn(world, ignoreVisibility, null);
+    }
+
+    private boolean trySpawn(GameWorld world, boolean ignoreVisibility, EnemyType forcedType) {
         for (int attempt = 0; attempt < 80; attempt++) {
             int tileX = MathUtils.random(2, Constants.MAP_WIDTH - 3);
             int tileY = MathUtils.random(2, Constants.MAP_HEIGHT - 3);
@@ -51,26 +70,50 @@ public class SpawnerSystem {
             if (!tile.isWalkable()) {
                 continue;
             }
-            if (!ignoreVisibility && tile.visible) {
+            if (!world.map.fallingVoid && !ignoreVisibility && tile.visible) {
                 continue;
             }
 
-            float x = (tileX + 0.5f) * Constants.TILE_SIZE;
-            float y = (tileY + 0.5f) * Constants.TILE_SIZE;
-            if (world.player.getCenter().dst(x, y) < Constants.TILE_SIZE * 12f) {
+            float x = world.map.tileCenterX(tileX);
+            float y = world.map.tileCenterY(tileY);
+            if (world.player.getCenter().dst(x, y) < Constants.TILE_WIDTH * 12f) {
                 continue;
             }
-            if (new Vector2(x, y).dst(world.map.stairsPosition) < Constants.TILE_SIZE * 2f) {
+            if (new Vector2(x, y).dst(world.map.stairsPosition) < Constants.TILE_WIDTH * 2f) {
                 continue;
             }
 
-            world.addEnemy(new Enemy(randomType(world), x, y, world.floor, world.biome, world.difficulty));
+            world.addEnemy(new Enemy(forcedType == null ? randomType(world) : forcedType,
+                    x, y, world.floor, world.biome, world.difficulty));
             return true;
         }
         return false;
     }
 
     private EnemyType randomType(GameWorld world) {
-        return world.biome == null ? EnemyType.SLIME : world.biome.randomEnemy(world.floor);
+        if (world.reviewMode) {
+            switch (world.floor) {
+                case 1:
+                    return EnemyType.SLIME;
+                case 2:
+                    return MathUtils.randomBoolean(0.68f) ? EnemyType.GOBLIN : EnemyType.SLIME;
+                case 3:
+                    return MathUtils.randomBoolean(0.68f) ? EnemyType.SKELETON : EnemyType.GOBLIN;
+                default:
+                    return MathUtils.randomBoolean(0.72f) ? EnemyType.MIRROR : EnemyType.SKELETON;
+            }
+        }
+        switch (world.floor) {
+            case 1:
+                return EnemyType.SLIME;
+            case 2:
+                return MathUtils.randomBoolean(0.68f) ? EnemyType.GOBLIN : EnemyType.SLIME;
+            case 3:
+                return MathUtils.randomBoolean(0.68f) ? EnemyType.SKELETON : EnemyType.GOBLIN;
+            case 4:
+                return MathUtils.randomBoolean(0.72f) ? EnemyType.MIRROR : EnemyType.SKELETON;
+            default:
+                return EnemyType.MIRROR;
+        }
     }
 }

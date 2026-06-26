@@ -3,6 +3,7 @@ package com.kayro.dungeon.render;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.kayro.dungeon.entity.Chest;
 import com.kayro.dungeon.entity.DecorProp;
 import com.kayro.dungeon.entity.Enemy;
@@ -15,10 +16,12 @@ public class DebugRenderer {
         shapes.setProjectionMatrix(camera.combined);
         shapes.begin(ShapeRenderer.ShapeType.Line);
         shapes.setColor(Color.CYAN);
-        shapes.rect(world.player.position.x, world.player.position.y, world.player.size.x, world.player.size.y);
+        Rectangle playerBounds = world.player.getBounds();
+        shapes.rect(playerBounds.x, playerBounds.y, playerBounds.width, playerBounds.height);
         shapes.setColor(Color.RED);
         for (Enemy enemy : world.enemies) {
-            shapes.rect(enemy.position.x, enemy.position.y, enemy.size.x, enemy.size.y);
+            Rectangle bounds = enemy.getBounds();
+            shapes.rect(bounds.x, bounds.y, bounds.width, bounds.height);
         }
         shapes.setColor(Color.GOLD);
         for (Chest chest : world.chests) {

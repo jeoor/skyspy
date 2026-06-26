@@ -8,23 +8,25 @@ application {
 
 dependencies {
     implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
     implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
     implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+    implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
 }
 
 def currentOs = org.gradle.internal.os.OperatingSystem.current()
 def appImageDir = {
-    currentOs.isMacOsX() ? file("build/jpackage/DungeonForge.app") : file("build/jpackage/DungeonForge")
+    currentOs.isMacOsX() ? file("build/jpackage/SkySpy.app") : file("build/jpackage/SkySpy")
 }
 def appAssetsDir = {
     currentOs.isMacOsX()
-        ? file("build/jpackage/DungeonForge.app/Contents/app/assets")
-        : file("build/jpackage/DungeonForge/app/assets")
+        ? file("build/jpackage/SkySpy.app/Contents/app/assets")
+        : file("build/jpackage/SkySpy/app/assets")
 }
 def appOutputPath = {
     currentOs.isMacOsX()
-        ? "lwjgl3/build/jpackage/DungeonForge.app"
-        : "lwjgl3/build/jpackage/DungeonForge/DungeonForge.exe"
+        ? "lwjgl3/build/jpackage/SkySpy.app"
+        : "lwjgl3/build/jpackage/SkySpy/SkySpy.exe"
 }
 def currentJavaBin = {
     file("${System.getProperty("java.home")}/bin")
@@ -80,7 +82,7 @@ tasks.register("jpackageExe", Exec) {
 
     def jpackageArgs = [
         "--type", "app-image",
-        "--name", "DungeonForge",
+        "--name", "SkySpy",
         "--input", jarDir,
         "--main-jar", "lwjgl3-${version}-all.jar",
         "--main-class", application.mainClass.get(),

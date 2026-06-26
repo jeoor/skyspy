@@ -3,10 +3,10 @@ package com.kayro.dungeon.entity;
 import com.badlogic.gdx.math.MathUtils;
 
 public enum WeaponType {
-    SWORD("Sword", 0, 0.35f, 58f, 0f, 0.80f, 8, 0, 0, 0),
-    GREATSWORD("Greatsword", 8, 0.56f, 68f, 16f, 1.00f, 8, 0, 0, 8),
-    DAGGER("Dagger", -3, 0.22f, 48f, -6f, 0.70f, 5, 0, 10, 20),
-    RUNESTAFF("Runestaff", 1, 0.44f, 56f, 0f, 0.58f, 12, 1, 0, 36);
+    SWORD("凝视", 0, 0.35f, 58f, 0f, 0.80f, 8, 0, 0, 0),
+    GREATSWORD("重凝视", 8, 0.56f, 68f, 16f, 1.00f, 8, 0, 0, 8),
+    DAGGER("急脉冲", -3, 0.22f, 48f, -6f, 0.70f, 5, 0, 10, 20),
+    RUNESTAFF("束光", 1, 0.44f, 56f, 0f, 0.58f, 12, 1, 0, 36);
 
     private static final WeaponType[] VALUES = values();
 

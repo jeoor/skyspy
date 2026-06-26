@@ -10,7 +10,7 @@
 #### 1.1 gradlew 脚本替换
 - **文件**: `gradlew`
 - **问题**: 原脚本依赖 PowerShell，macOS 无法执行
-- **修改**: 替换为标准 POSIX shell 脚本，自动检测 Homebrew 安装的 JDK 路径 `/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`
+- **修改**: 替换为标准 POSIX shell 脚本，在 macOS 上自动检测本机 JDK，不再要求把某台机器的绝对路径写进项目配置
 
 #### 1.2 gradle-wrapper.jar 下载
 - **文件**: `gradle/wrapper/gradle-wrapper.jar`
@@ -178,7 +178,7 @@ public static class State {
 - **修改**:
   - 新增 `diffButton` 矩形区域（位于 Start Run 按钮上方）
   - 点击按钮或按左/右方向键循环切换 Easy → Normal → Hard
-  - 显示难度名称（对应颜色：绿/金/红）和简短描述
+  - 只显示短难度名，移除特殊箭头符号和描述长句，避免字体缺字和文字错位
 
 #### 5.7 暂停界面显示难度
 - **文件**: `core/.../screen/GameScreen.java`
@@ -186,7 +186,7 @@ public static class State {
 
 #### 5.8 结算界面显示难度
 - **文件**: `core/.../screen/GameOverScreen.java`
-- **修改**: 统计数据上方显示本局难度名称（对应颜色），其余行向下偏移 10px
+- **修改**: 结算界面改为与主菜单、暂停界面一致的暗色面板样式，显示短统计、当前难度和可点击 Retry/Menu 按钮
 
 ---
 
@@ -249,9 +249,13 @@ public static class State {
 - **修改**:
   - 新增 `findNearestEnemy(GameWorld, Vector2)` 方法，遍历所有存活敌人找最近的
   - `playerArrowSkill()` 逻辑改为：
-    1. 有活着的敌人 → 自动朝最近敌人方向射箭
-    2. 无敌人 + 鼠标右键触发 → 朝鼠标方向射
-    3. 无敌人 + 键盘 K 触发 → 朝当前朝向射
+    1. 鼠标右键触发时，始终朝鼠标方向射箭
+    2. 键盘 K 触发时，优先自动朝最近敌人射箭
+    3. K 触发且无敌人时，朝当前朝向射箭
+
+#### 7.2 近战/远程伤害区分
+- **文件**: `core/.../entity/Player.java`
+- **修改**: 箭矢伤害改为基于近战伤害折算，并封顶低于近战伤害，保证近战攻击值大于远程攻击值
 
 ---
 
@@ -350,10 +354,201 @@ public static class State {
     - 半透明黑色遮罩 + 面板
     - 标题 "SHOP"（青色）
     - 当前金币数（金色）
-    - 5 个商品行：名称 + 描述 + 价格
+    - 5 个商品行：名称 + 短说明 + 价格
     - 买得起的商品绿色高亮，买不起的灰显
     - 鼠标悬停变色
-    - "Close [ESC]" 按钮
+    - "Close" 按钮
+
+---
+
+## 十、UI 文本和字体布局收敛
+
+### 背景
+开始界面的难度选择区出现字体异常和文字重叠。问题主要来自特殊符号、长文案和装饰元素挤在同一块区域。
+
+### 修改点
+
+#### 10.1 主菜单文字收敛
+- **文件**: `core/.../screen/MainMenuScreen.java`
+- **修改**:
+  - 难度选择只显示 `Mode: Easy/Normal/Hard`
+  - 移除难度栏左右特殊箭头，避免字体缺字
+  - 移除与难度栏重叠的 Relics 标签和底部怪物装饰，保留玩家右侧的史莱姆装饰
+  - 右侧信息面板改为短词，降低文本溢出风险
+
+#### 10.2 暂停、商店、HUD 短文本
+- **文件**: `core/.../screen/GameScreen.java`、`core/.../render/HudRenderer.java`
+- **修改**:
+  - 暂停界面提示改为短键位文本
+  - 商店关闭按钮改为 `Close`
+  - 游戏内底部控制提示压缩为短键位串
+
+#### 10.3 结算界面统一
+- **文件**: `core/.../screen/GameOverScreen.java`
+- **修改**:
+  - 从纯文字结算页改为统一面板式 UI
+  - Retry/Menu 支持鼠标点击
+  - 统计文案改为短标签，减少错位
+
+#### 10.4 难度描述缩短
+- **文件**: `core/.../util/Difficulty.java`
+- **修改**: 将难度描述缩短为 `Light` / `Standard` / `Brutal`，避免未来重新引用时再次撑开布局
+
+---
+
+## 十一、资源映射修正
+
+### 背景
+箱子交互前使用了开启动画的空白帧，导致未打开时看起来没有贴图；下一层入口只取了大入口素材的一小格，表现不像下楼入口。
+
+### 修改点
+
+#### 11.1 箱子关闭帧
+- **文件**: `core/.../asset/GameAssets.java`
+- **修改**:
+  - 关闭箱子改用 props 表中独立的关闭箱子格
+  - 开启动画跳过空白帧，只使用可见的开启帧
+  - `chestFrame()` 增加关闭帧兜底，避免缺素材时返回空贴图
+
+#### 11.2 下楼入口贴图
+- **文件**: `core/.../asset/GameAssets.java`、`core/.../render/WorldRenderer.java`
+- **修改**:
+  - 下一层入口改用 tileset 中 2x3 的入口素材区域
+  - 入口贴图移到地板层之后统一绘制，避免被相邻地板覆盖
+  - 去掉入口的蓝色染色，保留素材原色
+
+#### 11.3 程序生成备用素材同步
+- **文件**: `core/.../asset/ProceduralTextures.java`
+- **修改**: 备用 props/tileset 同步生成关闭箱子和 2x3 下楼入口，保证缺真实图片时仍有可见贴图
+
+---
+
+## 十二、全局字体替换
+
+### 背景
+默认 BitmapFont 字体偏小，并且对中文和像素风显示不友好。项目 assets 中已有 `fusion-pixel-10px-monospaced-zh_hans.ttf`。
+
+### 修改点
+
+#### 12.1 TTF 字体接入
+- **文件**: `core/.../DungeonForgeGame.java`
+- **修改**:
+  - 全局 `font` 改为通过 `fusion-pixel-10px-monospaced-zh_hans.ttf` 生成
+  - 字号设为 18，比原默认字体更大
+  - 启用增量字形生成，保留中文字体扩展能力
+  - 字体加载失败时回退到默认 `BitmapFont`
+
+#### 12.2 FreeType 依赖
+- **文件**: `core/build.gradle`、`lwjgl3/build.gradle`
+- **修改**:
+  - 添加 `gdx-freetype`
+  - 桌面端添加 `gdx-freetype-platform:natives-desktop`
+
+#### 12.3 大标题缩放整理
+- **文件**: `core/.../screen/MainMenuScreen.java`、`core/.../screen/GameScreen.java`、`core/.../screen/GameOverScreen.java`
+- **修改**: 在全局基础字号变大后，下调标题和按钮的局部 scale，防止文字溢出面板
+
+---
+
+## 十三、玩家碰撞手感优化
+
+### 背景
+玩家碰撞盒接近占满一格，贴墙和穿过窄口时容易感觉被空气挡住，不符合直觉。
+
+### 修改点
+
+#### 13.1 玩家碰撞盒缩小
+- **文件**: `core/.../entity/Player.java`
+- **修改**:
+  - 保持玩家视觉尺寸 `28x28` 不变
+  - 覆盖 `getBounds()`，实际碰撞盒向内收缩 4px
+  - 实际碰撞盒变为 `20x20`，移动、陷阱、投射物命中都使用更小范围
+
+#### 13.2 调试碰撞框同步
+- **文件**: `core/.../render/DebugRenderer.java`
+- **修改**: 玩家调试框改为绘制 `getBounds()` 返回的真实碰撞盒
+
+---
+
+## 十四、基础粒子反馈
+
+### 背景
+调研报告建议优先补充低成本高反馈的视觉效果。当前游戏已有屏震、飘字和音效，但命中、开箱、拾取、升级等事件缺少瞬时视觉爆点。
+
+### 修改点
+
+#### 14.1 Particle 实体
+- **文件**: `core/.../entity/Particle.java`（新建）
+- **内容**: 添加轻量粒子实体，包含位置、速度、颜色、大小、生命周期和淡出逻辑
+
+#### 14.2 世界粒子生命周期
+- **文件**: `core/.../world/GameWorld.java`
+- **修改**:
+  - 添加 `particles` 容器
+  - 添加 `addParticleBurst()` 方法生成小范围爆发粒子
+  - 在楼层加载时清空粒子
+  - 在世界更新中推进并移除过期粒子
+  - 开箱、购买、拾取、陷阱受伤时触发对应颜色粒子
+
+#### 14.3 战斗和升级反馈
+- **文件**: `core/.../system/CombatSystem.java`、`core/.../system/LevelSystem.java`
+- **修改**:
+  - 近战命中使用白色粒子，击杀使用金色粒子
+  - 箭矢命中使用青色粒子
+  - 玩家受伤使用红色粒子
+  - 吸血回复使用绿色粒子
+  - `gainExp()` 返回升级次数，升级时触发 `LEVEL UP` 飘字、金色粒子和轻微屏震
+
+#### 14.4 世界渲染接入
+- **文件**: `core/.../render/WorldRenderer.java`
+- **修改**: 在攻击轨迹之后、迷雾之前绘制粒子，使粒子受迷雾遮挡且不盖住 UI
+
+---
+
+## 十五、Sky Spy（空谍）叙事重构
+
+### 背景
+项目方向不再是经典地牢，而是 `Sky Spy（空谍）`：众多个"自己"中的一个"我"向天堂顶层攀登，试图杀死所有挡路者并找出真相。
+
+### 修改点
+
+#### 15.1 独立叙事文档
+- **文件**: `SKY_SPY_STORY_PLAN.md`（新建）
+- **内容**:
+  - 确定游戏名 `Sky Spy（空谍）`
+  - 将地牢楼层重构为天堂层级
+  - 将怪物解释为众多个白色"自己"
+  - 新增爬行动物/白色猫作为关键记忆敌人
+  - 补齐顶层"空自己"的动机
+  - 将死亡设计为记忆推进，而非纯惩罚
+  - 给出现有系统到新主题的映射表
+
+#### 15.2 主菜单标题
+- **文件**: `core/.../screen/MainMenuScreen.java`
+- **修改**: 主菜单标题从 `DUNGEONFORGE` 改为 `SKY SPY`，副标题改为更贴合新设定的短句
+
+---
+
+## 十六、操作、字体和地图手感
+
+### 修改点
+
+#### 16.1 字体生成参数
+- **文件**: `core/.../DungeonForgeGame.java`
+- **修改**:
+  - Fusion Pixel 生成字号从 18 调整到 20
+  - 增加 1px 横向字距，降低视觉压缩感
+
+#### 16.2 鼠标近战朝向
+- **文件**: `core/.../system/CombatSystem.java`
+- **修改**: 鼠标左键近战时，角色朝向同步到鼠标攻击方向
+
+#### 16.3 双格走廊
+- **文件**: `core/.../world/DungeonGenerator.java`
+- **修改**:
+  - 房间之间的横向走廊扩展为 2 格高
+  - 纵向走廊扩展为 2 格宽
+  - 刷怪系统保持从全地图可行走地块随机取点，因此走廊地块也会成为刷怪候选
 
 ---
 
@@ -361,6 +556,8 @@ public static class State {
 
 | 文件 | 操作 | 涉及章节 |
 |------|------|----------|
+| `core/build.gradle` | 修改 | 十二 |
+| `lwjgl3/build.gradle` | 修改 | 十二 |
 | `gradlew` | 替换 | 一 |
 | `gradle/wrapper/gradle-wrapper.jar` | 新增 | 一 |
 | `gradle.properties` | 修改 | 一 |
@@ -370,22 +567,29 @@ public static class State {
 | `core/.../world/DungeonMap.java` | 修改 | 二 |
 | `core/.../world/Room.java` | 修改 | 二 |
 | `core/.../system/CollisionSystem.java` | 修改 | 二 |
-| `core/.../system/CombatSystem.java` | 修改 | 二、七 |
+| `core/.../system/CombatSystem.java` | 修改 | 二、七、十四、十六 |
 | `core/.../entity/AttackEffect.java` | 修改 | 二 |
 | `core/.../system/PathfindingSystem.java` | 修改 | 二 |
 | `core/.../system/FogOfWarSystem.java` | 重写 | 三 |
-| `core/.../entity/Player.java` | 修改 | 四 |
-| `core/.../util/Difficulty.java` | 新建 | 五、八 |
-| `core/.../DungeonForgeGame.java` | 修改 | 五 |
-| `core/.../world/GameWorld.java` | 修改 | 五、六、八、九 |
+| `core/.../entity/Player.java` | 修改 | 四、十三 |
+| `core/.../util/Difficulty.java` | 新建/修改 | 五、八、十 |
+| `core/.../DungeonForgeGame.java` | 修改 | 五、十二、十六 |
+| `core/.../world/GameWorld.java` | 修改 | 五、六、八、九、十四 |
 | `core/.../entity/Enemy.java` | 修改 | 五、八 |
 | `core/.../system/SpawnerSystem.java` | 修改 | 五、八 |
-| `core/.../screen/MainMenuScreen.java` | 修改 | 五 |
-| `core/.../screen/GameScreen.java` | 修改 | 五、九 |
-| `core/.../screen/GameOverScreen.java` | 修改 | 五 |
-| `core/.../render/WorldRenderer.java` | 修改 | 六、九 |
+| `core/.../screen/MainMenuScreen.java` | 修改 | 五、十、十二、十五 |
+| `core/.../screen/GameScreen.java` | 修改 | 五、九、十、十二 |
+| `core/.../screen/GameOverScreen.java` | 修改 | 五、十、十二 |
+| `core/.../render/HudRenderer.java` | 修改 | 十 |
+| `core/.../render/WorldRenderer.java` | 修改 | 六、九、十四 |
+| `core/.../render/DebugRenderer.java` | 修改 | 十三 |
 | `core/.../world/BiomeType.java` | 修改 | 八 |
-| `core/.../system/LevelSystem.java` | 修改 | 八 |
+| `core/.../system/LevelSystem.java` | 修改 | 八、十四 |
+| `core/.../entity/Particle.java` | 新建 | 十四 |
 | `core/.../entity/Shop.java` | 新建 | 九 |
 | `core/.../entity/ShopItem.java` | 新建 | 九 |
-| `core/.../asset/GameAssets.java` | 未修改 | — |
+| `core/.../asset/GameAssets.java` | 修改 | UI 图标、箱子动画帧、十一 |
+| `core/.../asset/ProceduralTextures.java` | 修改 | 十一 |
+| `core/.../world/DungeonGenerator.java` | 修改 | 十六 |
+| `SKY_SPY_STORY_PLAN.md` | 新建 | 十五 |
+| `README.md` | 修改 | 十五 |

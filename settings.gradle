@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "DungeonForge"
+rootProject.name = "SkySpy"
 include "core", "lwjgl3"

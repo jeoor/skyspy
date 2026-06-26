@@ -1,10 +1,17 @@
 package com.kayro.dungeon.entity;
 
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.kayro.dungeon.world.GameWorld;
 
 public class Player extends LivingEntity {
+    private static final float BODY_BOUNDS_WIDTH = 36f;
+    private static final float BODY_BOUNDS_HEIGHT = 72f;
+    private static final float BODY_BOUNDS_BOTTOM_OFFSET = -2f;
+    public static final float SHOOT_PREP_TIME = 1.760f;
+    public static final float SHOOT_READY_TIME = 1.671f;
+    public static final float SHOOT_BULLET_COOLDOWN = 0.440f;
 
     public static class State {
         public int hp, maxHp, attack, defense, level, exp, gold, keys, potions;
@@ -45,6 +52,7 @@ public class Player extends LivingEntity {
     }
 
     private final Vector2 dashDirection = new Vector2();
+    private final Rectangle collisionBounds = new Rectangle();
 
     public final Array<RelicType> relics = new Array<>();
     public WeaponType weapon = WeaponType.SWORD;
@@ -58,13 +66,21 @@ public class Player extends LivingEntity {
     public int arrowPierce;
     public float knockbackBonus;
     public int lowHealthAttackBonus;
+    public int projectileDamageBonus;
+    public float projectileSpeedBonus;
+    public float projectileLifeBonus;
+    public float projectileKnockbackBonus;
+    public int shellBreakDamageBonus;
     public float invincibleTimer;
     public float dashTimer;
     public float dashCooldown = 0.75f;
     public float dashCooldownTimer;
+    public float dashShotBoostTimer;
     public float footstepTimer;
     public float skillCooldown = 0.8f;
     public float skillCooldownTimer;
+    public float shootPrepTimer;
+    public float shootBulletTimer;
 
     public Player(float centerX, float centerY) {
         super(centerX - 14f, centerY - 14f, 28f, 28f);
@@ -77,11 +93,21 @@ public class Player extends LivingEntity {
     }
 
     @Override
+    public Rectangle getBounds() {
+        float centerX = position.x + size.x * 0.5f;
+        return collisionBounds.set(centerX - BODY_BOUNDS_WIDTH * 0.5f,
+                position.y + BODY_BOUNDS_BOTTOM_OFFSET, BODY_BOUNDS_WIDTH, BODY_BOUNDS_HEIGHT);
+    }
+
+    @Override
     public void update(float delta, GameWorld world) {
         attackTimer = Math.max(0f, attackTimer - delta);
+        shootPrepTimer = Math.max(0f, shootPrepTimer - delta);
+        shootBulletTimer = Math.max(0f, shootBulletTimer - delta);
         invincibleTimer = Math.max(0f, invincibleTimer - delta);
         dashTimer = Math.max(0f, dashTimer - delta);
         dashCooldownTimer = Math.max(0f, dashCooldownTimer - delta);
+        dashShotBoostTimer = Math.max(0f, dashShotBoostTimer - delta);
         skillCooldownTimer = Math.max(0f, skillCooldownTimer - delta);
         footstepTimer = Math.max(0f, footstepTimer - delta);
         if (isDead()) {
@@ -121,6 +147,9 @@ public class Player extends LivingEntity {
         }
         dashTimer = 0.16f;
         dashCooldownTimer = dashCooldown;
+        if (hasRelic(RelicType.AFTERIMAGE_STEP)) {
+            dashShotBoostTimer = 1.45f;
+        }
         invincibleTimer = Math.max(invincibleTimer, 0.18f);
         if (world.sfx != null) {
             world.sfx.dash();
@@ -148,14 +177,32 @@ public class Player extends LivingEntity {
                 arrowPierce += 1;
                 break;
             case IRON_GRIP:
-                knockbackBonus += 8f;
+                knockbackBonus += 18f;
                 break;
             case LAST_STAND:
-                lowHealthAttackBonus += 5;
+                lowHealthAttackBonus += 8;
+                dashCooldown = Math.max(0.52f, dashCooldown - 0.04f);
+                break;
+            case ECHO_LENS:
+                projectileDamageBonus += 3;
+                projectileSpeedBonus += 70f;
+                projectileLifeBonus += 0.10f;
+                break;
+            case WHITE_SPLINTER:
+                shellBreakDamageBonus += 4;
+                projectileKnockbackBonus += 12f;
+                break;
+            case AFTERIMAGE_STEP:
+                dashCooldown = Math.max(0.48f, dashCooldown - 0.10f);
+                projectileKnockbackBonus += 6f;
                 break;
             default:
                 break;
         }
+    }
+
+    public boolean hasRelic(RelicType relic) {
+        return relics.contains(relic, true);
     }
 
     public void equipWeapon(WeaponType weapon) {
@@ -187,11 +234,30 @@ public class Player extends LivingEntity {
     }
 
     public int arrowDamage() {
-        return attackDamage() + weapon.arrowDamageBonus;
+        return Math.max(1, attackDamage() + weapon.arrowDamageBonus + projectileDamageBonus);
     }
 
     public int arrowPierceCount() {
         return arrowPierce + weapon.arrowPierceBonus;
     }
 
+    public float projectileSpeed() {
+        return 560f + projectileSpeedBonus;
+    }
+
+    public float projectileLife() {
+        return 0.95f + projectileLifeBonus;
+    }
+
+    public float projectileKnockback() {
+        return 34f + knockbackBonus + projectileKnockbackBonus + weapon.knockbackBonus * 0.75f;
+    }
+
+    public boolean consumeDashShotBoost() {
+        if (dashShotBoostTimer <= 0f) {
+            return false;
+        }
+        dashShotBoostTimer = 0f;
+        return true;
+    }
 }

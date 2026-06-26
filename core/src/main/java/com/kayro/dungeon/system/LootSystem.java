@@ -15,17 +15,17 @@ public class LootSystem {
         float x = enemy.getCenter().x;
         float y = enemy.getCenter().y;
 
-        if (roll < 0.64f) {
+        if (roll < 0.50f) {
             world.items.add(new Item(ItemType.COIN, x, y, MathUtils.random(1, 4 + world.floor)));
-        } else if (roll < 0.80f) {
+        } else if (roll < 0.67f) {
             world.items.add(new Item(ItemType.POTION, x, y, 1));
-        } else if (roll < 0.87f) {
+        } else if (roll < 0.78f) {
             world.items.add(new Item(ItemType.SWORD_UPGRADE, x, y, 1));
-        } else if (roll < 0.94f) {
+        } else if (roll < 0.86f) {
             world.items.add(new Item(ItemType.ARMOR_UPGRADE, x, y, 1));
-        } else if (roll < 0.975f) {
+        } else if (roll < 0.93f) {
             world.items.add(new Item(ItemType.KEY, x, y, 1));
-        } else if (roll < 0.992f) {
+        } else if (roll < 0.985f) {
             world.items.add(new Item(randomRelic(), x, y));
         } else {
             world.items.add(new Item(randomWeapon(), x, y));
@@ -35,26 +35,26 @@ public class LootSystem {
     public void addPickupText(GameWorld world, Item item) {
         switch (item.type) {
             case COIN:
-                world.addDamageText("+" + item.amount + "g", item.getCenter().x, item.getCenter().y, Color.GOLD);
+                world.addDamageText("+" + item.amount + "回响", item.getCenter().x, item.getCenter().y, Color.GOLD);
                 break;
             case POTION:
-                world.addDamageText("+Potion", item.getCenter().x, item.getCenter().y, Color.SCARLET);
+                world.addDamageText("+修补", item.getCenter().x, item.getCenter().y, Color.SCARLET);
                 break;
             case SWORD_UPGRADE:
-                world.addDamageText("+ATK", item.getCenter().x, item.getCenter().y, Color.CYAN);
+                world.addDamageText("+准星", item.getCenter().x, item.getCenter().y, Color.CYAN);
                 break;
             case ARMOR_UPGRADE:
-                world.addDamageText("+DEF", item.getCenter().x, item.getCenter().y, Color.LIGHT_GRAY);
+                world.addDamageText("+外壳", item.getCenter().x, item.getCenter().y, Color.LIGHT_GRAY);
                 break;
             case KEY:
-                world.addDamageText("+Key", item.getCenter().x, item.getCenter().y, Color.GOLD);
+                world.addDamageText("+碎片", item.getCenter().x, item.getCenter().y, Color.GOLD);
                 break;
             case RELIC:
-                String label = item.relicType == null ? "Relic" : item.relicType.label;
+                String label = item.relicType == null ? "残留" : item.relicType.label;
                 world.addDamageText("+" + label, item.getCenter().x - 12f, item.getCenter().y, Color.VIOLET);
                 break;
             case WEAPON:
-                String weapon = item.weaponType == null ? "Weapon" : item.weaponType.label;
+                String weapon = item.weaponType == null ? "射击" : item.weaponType.label;
                 world.addDamageText("+" + weapon, item.getCenter().x - 12f, item.getCenter().y, Color.GOLD);
                 break;
             default:

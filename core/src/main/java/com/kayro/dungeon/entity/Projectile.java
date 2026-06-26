@@ -12,6 +12,7 @@ public class Projectile extends Entity {
     public float life = 1.2f;
     public int damage;
     public int pierceLeft;
+    public float knockback;
 
     public Projectile(float centerX, float centerY, Vector2 direction, float speed, int damage) {
         this(centerX, centerY, direction, speed, damage, false);
@@ -29,7 +30,7 @@ public class Projectile extends Entity {
     public void update(float delta, GameWorld world) {
         position.mulAdd(velocity, delta);
         life -= delta;
-        if (life <= 0f || !world.map.isAreaWalkable(getBounds())) {
+        if (life <= 0f) {
             removed = true;
         }
     }
