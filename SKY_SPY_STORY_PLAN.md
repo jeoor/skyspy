@@ -108,11 +108,11 @@
 |---|---|---|
 | 随机浮岛地面 | `tilesheet.png`、`tilesheet2.png`、`tilesheet3.png`、`tilesheet4.png` | 按 8px/24px 高瓦片切分，拼出浮岛主体、断边、平台装饰 |
 | 浮岛顶部/边缘层次 | `tilesheet_top.png`、`tilesheet*_top.png`、`grassSet.png`、`grassSetEdge.png` | 用于平台上沿、草边、断裂边缘，强化“悬空岛” |
-| 深色虚空/天空 | `bkg_stars.png`、`bkg_stars_distant.png`、`bkg_orbit2.png` | 多层滚动背景，表现上升空间和远处天空 |
-| 记忆裂隙/上升门 | `teleporterGlow.png`、`teleporterBeamGlow.png`、`beamStart.png` | 作为上升门、Boss 门、记忆裂隙的光效 |
-| 记忆/情绪节点 | `whiteFloorGlow.png`、`blueFloorGlow.png`、`redFloorGlow.png`、`yellowGlow.png` | 用颜色区分冷地板、远程攻击预兆、愤怒蓄力、关键物品 |
+| 深色虚空/天空 | `bkg_stars.png`、`bkg_stars_distant.png` | 双层星空背景，表现上升空间和远处天空 |
+| 记忆裂隙/上升门 | `gameObjects.png` 内部裂隙/终端帧 | 作为上升门、Boss 门、记忆裂隙的视觉基础 |
+| 记忆/情绪节点 | 程序生成白色轮廓、角色 tint、粒子反馈 | 用颜色和轮廓区分冷地板、远程攻击预兆、愤怒蓄力、关键物品 |
 | 暗角/精神压迫 | `vignetteMask.png`、`vignetteShadow.png`、`images/vignette.png` | 用于受伤、死亡、回响、Boss 压迫，不做纯黑遮挡 |
-| 标题/过场参考 | `introLevel.png`、`introLevelMask.png`、`ending_scene*.png`、`title_*.png` | 可用于菜单背景、过场构图参考，不直接当随机地图 |
+| 标题/过场参考 | `title.png`、运行时生成世界背景 | 用于菜单标题和过场构图，不直接当随机地图 |
 
 视觉方向从“白色天堂”调整为“漂白浮岛”：不是纯白空场，而是低饱和灰白平台、褪色绿草、粉土、深蓝虚空和柔光滤镜。这样更贴近现有素材，也避免画面过空。
 
@@ -123,12 +123,12 @@
 | 主角 | `gameObjects.png` 或 `spritesheet.png` 中的人形/机器人帧 | 作为唯一基础人形素材，保留原色 |
 | 空白自己 | 主角同帧 | 白色 tint，低饱和，动作更僵硬 |
 | 逃避自己 | 主角同帧 | 冷白/淡蓝 tint，远程弹道用蓝/白小球 |
-| 愤怒自己 | 主角同帧 | 白色 tint 加红/橙边光，蓄力用 `redFloorGlow.png` |
+| 愤怒自己 | 主角同帧 | 白色 tint 加红/橙 telegraph 和粒子反馈 |
 | 镜像自己 | 主角同帧 | 半透明白，延迟复制动作 |
 | 空自己 | 主角同帧 | 开场纯白，阶段推进后逐渐恢复主角颜色 |
 | 白猫 | `gameObjects.png` 中的 Laika 猫帧 | 使用 `SpriteSheet<423,224,32,32>` idle 10 帧和 `SpriteSheet<391,253,36,32>` run 5 帧，叠加白色 hint 表现“被漂白” |
 | 投射物/闪光 | `gameObjects.png`、`spritesheet*.png` 中的弹丸/闪光帧 | 主角眼部投射、敌方弹幕、击中反馈 |
-| 爆炸/消散 | `fireExplosionGlow.png`、`blueFireGlow.png`、`gameObjects.png` 爆炸帧 | 敌人死亡、记忆碎片爆开、Boss 阶段转换 |
+| 爆炸/消散 | `gameObjects.png` 帧、程序粒子和短文本反馈 | 敌人死亡、记忆碎片爆开、Boss 阶段转换 |
 
 敌人除猫外继续共用主角素材。现有素材的优势是“同一人形帧可被 tint 成不同状态”，这正好服务“敌人都是自己”的主题。
 
@@ -137,9 +137,9 @@
 | 功能 | 现有素材 | 使用方式 |
 |---|---|---|
 | 心/护盾/钥匙等小图标 | `gameObjects.png`、`spritesheet.png` 内部 UI 图标 | 替换文字型状态栏，减少字体错位 |
-| 投射音效 | `gunshot.ogg`、`laser.ogg`、`silenced.ogg` | 按主角/敌方弹道区分；避免过吵的持续噪声 |
+| 投射音效 | `laser.ogg` | 眼部投射和敌方弹道共用，避免过吵的持续噪声 |
 | 闪避/位移 | `woosh.ogg`、`wooshMono.ogg` | Dash、坠落前拉扯、Boss 幻影消散 |
-| 命中/爆炸 | `blast1.ogg`、`espark.ogg`、`bite-small*.wav` | 命中、机器人碎裂、猫受击需谨慎使用更轻声音 |
+| 命中/爆炸 | `blast1.ogg`、`espark.ogg` | 命中、机器人碎裂、Boss 阶段反馈 |
 | 脚步 | `footstepDirt*.ogg` | 浮岛移动，按地面类型降低音量 |
 | 获得道具 | `gotitem.ogg` | 情绪匣、童年残留、记忆碎片 |
 | 环境压迫 | `electricHum.ogg`、`creak.ogg` | 上升门、顶层回响、空自己阶段切换 |
@@ -159,7 +159,7 @@ portable 版的“构建时把图片/脚本转成代码数据”不适合当前 
 
 - 不能随意把门、机器、敌人素材解释成完全无关的东西。
 - 猫使用 Blind Jump 的 Laika 帧，不与主角/敌人共用人形素材；猫是记忆锚点，必须保持视觉特殊。
-- `introLevel`、`title`、`ending_scene` 这类整图只用于菜单/过场参考，不参与随机地图拼接。
+- `title` 和运行时生成背景只用于菜单/过场参考，不参与随机地图拼接。
 - 使用开源素材时，需要保留对应许可证信息：初版为 BSD 风格许可，portable 版为 MIT 许可。
 
 ## 4. 序章与初始动机

@@ -15,18 +15,41 @@ dependencies {
 }
 
 def currentOs = org.gradle.internal.os.OperatingSystem.current()
+def platformName = {
+    if (currentOs.isMacOsX()) {
+        return "macos"
+    }
+    if (currentOs.isLinux()) {
+        return "linux-x64"
+    }
+    if (currentOs.isWindows()) {
+        return "windows-x64"
+    }
+    return "unknown"
+}
+def appImageOutputDir = {
+    file("build/jpackage/${platformName()}")
+}
 def appImageDir = {
-    currentOs.isMacOsX() ? file("build/jpackage/SkySpy.app") : file("build/jpackage/SkySpy")
+    currentOs.isMacOsX() ? file("${appImageOutputDir()}/SkySpy.app") : file("${appImageOutputDir()}/SkySpy")
 }
 def appAssetsDir = {
-    currentOs.isMacOsX()
-        ? file("build/jpackage/SkySpy.app/Contents/app/assets")
-        : file("build/jpackage/SkySpy/app/assets")
+    if (currentOs.isMacOsX()) {
+        return file("${appImageDir()}/Contents/app/assets")
+    }
+    if (currentOs.isLinux()) {
+        return file("${appImageDir()}/lib/app/assets")
+    }
+    return file("${appImageDir()}/app/assets")
 }
 def appOutputPath = {
-    currentOs.isMacOsX()
-        ? "lwjgl3/build/jpackage/SkySpy.app"
-        : "lwjgl3/build/jpackage/SkySpy/SkySpy.exe"
+    if (currentOs.isMacOsX()) {
+        return "lwjgl3/build/jpackage/${platformName()}/SkySpy.app"
+    }
+    if (currentOs.isLinux()) {
+        return "lwjgl3/build/jpackage/${platformName()}/SkySpy/bin/SkySpy"
+    }
+    return "lwjgl3/build/jpackage/${platformName()}/SkySpy/SkySpy.exe"
 }
 def currentJavaBin = {
     file("${System.getProperty("java.home")}/bin")
@@ -70,12 +93,11 @@ tasks.named("jar") {
     }
 }
 
-// jpackage 配置 - 生成原生 exe
+// jpackage 配置 - 生成平台 app image
 tasks.register("jpackageExe", Exec) {
     dependsOn "fatJar"
 
     def jarDir = file("build/libs").absolutePath
-    def outputDir = file("build/jpackage").absolutePath
     doFirst {
         delete appImageDir()
     }
@@ -86,7 +108,7 @@ tasks.register("jpackageExe", Exec) {
         "--input", jarDir,
         "--main-jar", "lwjgl3-${version}-all.jar",
         "--main-class", application.mainClass.get(),
-        "--dest", outputDir,
+        "--dest", appImageOutputDir().absolutePath,
         "--java-options", "-Dfile.encoding=UTF-8",
         "--java-options", "-Xmx512m"
     ]
@@ -118,5 +140,14 @@ tasks.register("buildExe") {
         println "  输出: ${appOutputPath()}"
         println "  assets 已复制到 ${appAssetsDir()}"
         println "========================================="
+    }
+}
+
+tasks.register("zipAppImage", Zip) {
+    dependsOn "copyAssets"
+    archiveFileName.set("SkySpy-${platformName()}.zip")
+    destinationDirectory.set(layout.buildDirectory.dir("distributions"))
+    from(appImageDir()) {
+        into appImageDir().name
     }
 }

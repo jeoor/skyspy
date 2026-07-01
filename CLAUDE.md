@@ -21,7 +21,7 @@ Core generator contract tests run with `.\gradlew.bat core:test`.
 
 - `core/` — All game logic (57 Java files). Platform-independent.
 - `lwjgl3/` — Desktop launcher only (`Lwjgl3Launcher.java` → `DungeonForgeGame`).
-- `assets/` — Sprites, fonts, sounds, shaders from Blind Jump asset pack, plus `title.png`.
+- `assets/` — Runtime sprites and sounds from Blind Jump, SmileySans font, license notices, plus `title.png`.
 
 ### Game Loop
 

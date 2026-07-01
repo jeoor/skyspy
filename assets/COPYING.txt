@@ -1,3 +1,20 @@
+Asset License Notices
+=====================
+
+This file records license notices for runtime assets bundled with Sky Spy.
+
+- Blind Jump-derived runtime textures and sounds:
+  Copyright (c) 2016, Evan Avery Bowman. BSD 2-Clause license below.
+- assets/fonts/SmileySans-Oblique-2.ttf:
+  Smiley Sans / 得意黑 by atelierAnchor. Copyright (c) 2022-2024
+  atelierAnchor. Licensed under the SIL Open Font License, Version 1.1.
+  See OFL-1.1.txt.
+- assets/title.png and assets/icon.png:
+  Original Sky Spy artwork created by the project author.
+
+Blind Jump BSD 2-Clause License
+===============================
+
 Copyright (c) 2016, Evan Avery Bowman
 All rights reserved.
 

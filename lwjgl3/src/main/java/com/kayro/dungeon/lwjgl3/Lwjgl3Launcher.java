@@ -26,6 +26,7 @@ public class Lwjgl3Launcher {
 
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
         config.setTitle("Sky Spy");
+        config.setWindowIcon("icon.png");
         config.setWindowedMode(1280, 720);
         config.setForegroundFPS(60);
         config.useVsync(true);

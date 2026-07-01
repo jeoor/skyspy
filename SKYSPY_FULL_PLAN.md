@@ -120,7 +120,7 @@ core/src/main/java/com/kayro/dungeon/
 - 没有合适素材时优先少放元素，而不是制造错误语义。
 - `assets/title.png` 用作主菜单标题。
 - `assets/fonts/SmileySans-Oblique-2.ttf` 用作全局中文字体。
-- `assets/shaders/` 当前没有接入运行时代码，除非后续显式使用 `ShaderProgram`，否则只作为保留资源。
+- 未接入运行时代码的预留素材已从 `assets/` 清理；除非后续显式使用 `ShaderProgram`，否则不保留 shader 资源。
 
 主要资源映射：
 
