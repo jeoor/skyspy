@@ -97,7 +97,7 @@ jobs:
       - name: Download platform zips
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh run download "$GITHUB_RUN_ID" --dir release-assets --pattern "SkySpy-*"
+        run: gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --dir release-assets --pattern "SkySpy-*"
 
       - name: Publish GitHub release
         env:
@@ -109,12 +109,12 @@ jobs:
             exit 1
           fi
 
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "${zip_files[@]}" --clobber
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${zip_files[@]}" --repo "$GITHUB_REPOSITORY" --clobber
           else
             if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-              gh release create "$RELEASE_TAG" "${zip_files[@]}" --title "$RELEASE_TAG" --notes "Automated release for $RELEASE_TAG." --target "$GITHUB_SHA"
+              gh release create "$RELEASE_TAG" "${zip_files[@]}" --repo "$GITHUB_REPOSITORY" --title "$RELEASE_TAG" --notes "Automated release for $RELEASE_TAG." --target "$GITHUB_SHA"
             else
-              gh release create "$RELEASE_TAG" "${zip_files[@]}" --title "$RELEASE_TAG" --notes "Automated release for $RELEASE_TAG."
+              gh release create "$RELEASE_TAG" "${zip_files[@]}" --repo "$GITHUB_REPOSITORY" --title "$RELEASE_TAG" --notes "Automated release for $RELEASE_TAG."
             fi
           fi
